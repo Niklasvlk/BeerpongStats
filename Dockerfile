@@ -1,15 +1,15 @@
-# Base Image
-FROM eclipse-temurin:21-jre-jammy
-
-# Arbeitsverzeichnis
+# Stage 1: Build
+FROM gradle:8.3-jdk21 AS builder
 WORKDIR /app
+COPY . .
+RUN gradle build --no-daemon
 
-# JAR kopieren
-COPY build/libs/*.jar app.jar
+# Stage 2: Runtime
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+COPY --from=builder /app/build/libs/*.jar app.jar
 
-# Optional: Java Memory + Spring Profile
 ENV JAVA_OPTS="-Xmx512m"
 ENV SPRING_PROFILES_ACTIVE=prod
 
-# Startbefehl
 CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
