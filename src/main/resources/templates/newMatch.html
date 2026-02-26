@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create a New Match</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="nav-logo">🍺 BeerpongStats</div>
+    <button class="hamburger" onclick="toggleNav()">☰</button>
+    <nav class="nav-links">
+        <a th:href="@{/newMatch}">New Match</a>
+        <a th:href="@{/newPlayer}">New Player</a>
+        <a th:href="@{/players}">Players</a>
+        <a th:href="@{/matches}">Matches</a>
+        <a th:href="@{/profile/login}" class="btn-primary">My Profile</a>
+    </nav>
+</header>
+
+<main class="container">
+    <section>
+        <h2>Create a New Match</h2>
+
+        <form th:action="@{/newMatch}" method="post" class="form-card">
+
+            <div class="form-row">
+                <input type="text" name="winner1" placeholder="Winner 1" required>
+                <input type="number" name="winner1cups" placeholder="Winner 1 Cups" min="0" max="10">
+            </div>
+
+            <div class="form-row">
+                <input type="text" name="winner2" placeholder="Winner 2">
+                <input type="number" name="winner2cups" placeholder="Winner 2 Cups" min="0" max="10">
+            </div>
+
+            <div class="form-row">
+                <input type="text" name="loser1" placeholder="Loser 1" required>
+                <input type="number" name="loser1cups" placeholder="Loser 1 Cups" min="0" max="10">
+            </div>
+
+            <div class="form-row">
+                <input type="text" name="loser2" placeholder="Loser 2">
+                <input type="number" name="loser2cups" placeholder="Loser 2 Cups" min="0" max="10">
+            </div>
+
+            <div class="form-row">
+                <button type="submit" class="btn-primary">Add Match</button>
+            </div>
+
+        </form>
+    </section>
+</main>
+
+<script>
+    function toggleNav() {
+        document.querySelector('.nav-links').classList.toggle('active');
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Matches</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="nav-logo">🍺 BeerpongStats</div>
+    <button class="hamburger" onclick="toggleNav()">☰</button>
+    <nav class="nav-links">
+        <a th:href="@{/newMatch}">New Match</a>
+        <a th:href="@{/newPlayer}">New Player</a>
+        <a th:href="@{/players}">Players</a>
+        <a th:href="@{/matches}">Matches</a>
+        <a th:href="@{/profile/login}" class="btn-primary">My Profile</a>
+    </nav>
+</header>
+
+<main class="container">
+    <section>
+        <h2>All Matches</h2>
+
+        <div class="match-list">
+            <a class="match-card"
+               th:each="match : ${matches}"
+               th:href="@{/matches/{id}(id=${match.id})}">
+
+                <!-- Datum -->
+                <div class="match-date"
+                     th:text="${match.playedAt != null ?
+                               #temporals.format(match.playedAt, 'dd.MM.yyyy HH:mm')
+                               : 'kein Datum'}">
+                </div>
+
+                <!-- Teams -->
+                <div class="match-teams">
+                    <div class="team winners">
+                        <span th:text="${match.winner1.name}"></span>
+                        <span th:if="${match.winner2 != null}"
+                              th:text="' / ' + ${match.winner2.name}"></span>
+                    </div>
+
+                    <div class="vs">vs</div>
+
+                    <div class="team losers">
+                        <span th:text="${match.loser1.name}"></span>
+                        <span th:if="${match.loser2 != null}"
+                              th:text="' / ' + ${match.loser2.name}"></span>
+                    </div>
+                </div>
+
+            </a>
+        </div>
+
+        <div style="margin-top: 25px;">
+            <a th:href="@{/}" class="btn-primary">Back to Home</a>
+        </div>
+
+    </section>
+</main>
+
+<script>
+    function toggleNav() {
+        document.querySelector('.nav-links').classList.toggle('active');
+    }
+</script>
+
+</body>
+</html>

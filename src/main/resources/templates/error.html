@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fehler | Beerpong Stats</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Externes CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="nav-logo">🍺 BeerpongStats</div>
+    <button class="hamburger" onclick="toggleNav()">☰</button>
+    <nav class="nav-links">
+        <a th:href="@{/newMatch}">New Match</a>
+        <a th:href="@{/newPlayer}">New Player</a>
+        <a th:href="@{/players}">Players</a>
+        <a th:href="@{/matches}">Matches</a>
+        <a th:href="@{/profile/login}" class="btn-primary">My Profile</a>
+    </nav>
+</header>
+
+<main class="container">
+
+    <section class="error-section">
+        <h2>🚨 Fehler</h2>
+
+        <div class="error-card">
+
+            <h3 style="color:#ff4d4f; margin-bottom: 1rem;">
+                Ups, da ist etwas schiefgelaufen
+            </h3>
+
+            <p style="font-size: 1.1rem; margin-bottom: 2rem;"
+               th:text="${errorMessage}">
+                Ein unerwarteter Fehler ist aufgetreten.
+            </p>
+
+            <div>
+                <a th:href="@{/}" class="btn-primary">🏠 Zur Startseite</a>
+                <a href="javascript:history.back()" class="btn-secondary" style="margin-left: 1rem;">
+                    ⬅ Zurück
+                </a>
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<script>
+    function toggleNav() {
+        document.querySelector('.nav-links').classList.toggle('active');
+    }
+</script>
+
+</body>
+</html>

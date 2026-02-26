@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="nav-logo">🍺 BeerpongStats</div>
+    <button class="hamburger" onclick="toggleNav()">☰</button>
+    <nav class="nav-links">
+        <a th:href="@{/newMatch}">New Match</a>
+        <a th:href="@{/newPlayer}">New Player</a>
+        <a th:href="@{/players}">Players</a>
+        <a th:href="@{/matches}">Matches</a>
+        <a th:href="@{/profile/login}" class="btn-primary">My Profile</a>
+    </nav>
+</header>
+
+<main class="container">
+
+    <section>
+        <h2>Login</h2>
+
+        <form th:action="@{/profile/login}" th:object="${loginDTO}" method="post" class="form-card">
+            <div class="form-row">
+                <input type="text" th:field="*{name}" placeholder="Name" required>
+            </div>
+            <div class="form-row">
+                <input type="password" th:field="*{password}" placeholder="Passwort" required>
+            </div>
+            <div class="form-row">
+                <button type="submit" class="btn-primary">Login</button>
+            </div>
+
+            <p th:if="${error}" class="error-text" th:text="${error}">Error message</p>
+        </form>
+
+    </section>
+
+</main>
+
+<script>
+    function toggleNav() {
+        document.querySelector('.nav-links').classList.toggle('active');
+    }
+</script>
+
+</body>
+</html>

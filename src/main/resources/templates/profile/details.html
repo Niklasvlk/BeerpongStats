@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${player.name}">Profil</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="nav-logo">🍺 BeerpongStats</div>
+    <button class="hamburger" onclick="toggleNav()">☰</button>
+    <nav class="nav-links">
+        <a th:href="@{/newMatch}">New Match</a>
+        <a th:href="@{/newPlayer}">New Player</a>
+        <a th:href="@{/players}">Players</a>
+        <a th:href="@{/matches}">Matches</a>
+        <a th:href="@{/profile/login}" class="btn-primary">My Profile</a>
+    </nav>
+</header>
+
+<main class="container">
+
+    <section>
+        <!-- Profile Card -->
+        <div class="player-details-card">
+            <div class="player-name" th:text="${player.name}">Player Name</div>
+
+            <div class="player-stats">
+                <div>Wins: <span th:text="${player.wins}">0</span></div>
+                <div>Losses: <span th:text="${player.losses}">0</span></div>
+                <div>Winrate: <span th:text="${#numbers.formatDecimal(player.winRate * 100, 1, 2)} + '%'">0%</span></div>
+                <div>Avg Cups: <span th:text="${#numbers.formatDecimal(player.avgCups, 1, 2)}">0</span></div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <form th:action="@{/profile/delete/{id}(id=${player.id})}" method="post">
+                    <button type="submit" class="btn-danger"
+                            onclick="return confirm('Willst du dein Profil wirklich löschen?')">
+                        Profil löschen
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<script>
+    function toggleNav() {
+        document.querySelector('.nav-links').classList.toggle('active');
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alle Spieler</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="nav-logo">🍺 BeerpongStats</div>
+    <button class="hamburger" onclick="toggleNav()">☰</button>
+    <nav class="nav-links">
+        <a th:href="@{/newMatch}">New Match</a>
+        <a th:href="@{/newPlayer}">New Player</a>
+        <a th:href="@{/players}">Players</a>
+        <a th:href="@{/matches}">Matches</a>
+        <a th:href="@{/profile/login}" class="btn-primary">My Profile</a>
+    </nav>
+</header>
+
+<main class="container">
+
+    <section>
+        <h2>All Players</h2>
+
+        <!-- Sortierung -->
+        <div class="sort-links">
+            Sort by:
+            <a th:href="@{/players(sort='winrate')}" class="btn-secondary">Winrate</a>
+            <a th:href="@{/players(sort='avgCups')}" class="btn-secondary">Avg Cups</a>
+            <a th:href="@{/players(sort='name')}" class="btn-secondary">Alphabet</a>
+        </div>
+
+        <!-- Suche -->
+        <form th:action="@{/players/search}" method="get" class="form-card">
+            <div class="form-row">
+                <input type="text" name="name" placeholder="Spielername suchen">
+                <button type="submit" class="btn-primary">Search</button>
+            </div>
+        </form>
+
+        <!-- Player List -->
+        <div class="player-list">
+            <a class="player-card" th:each="player : ${players}"
+               th:href="@{/players/{id}(id=${player.id})}">
+
+                <div class="player-name" th:text="${player.name}"></div>
+
+                <div class="player-stats">
+                    <span th:text="${#numbers.formatDecimal(player.winRate * 100, 1, 2)} + '%'"
+                          th:style="'color: rgb(' + ${255 - (player.winRate * 255)} + ',' + ${player.winRate * 255} + ',0)'"></span>
+                    <span th:text="'Avg Cups: ' + ${#numbers.formatDecimal(player.avgCups, 1, 2)}"></span>
+                </div>
+
+            </a>
+        </div>
+
+        <div style="margin-top: 25px;">
+            <a th:href="@{/}" class="btn-primary">Back to Home</a>
+        </div>
+
+    </section>
+
+</main>
+
+<script>
+    function toggleNav() {
+        document.querySelector('.nav-links').classList.toggle('active');
+    }
+</script>
+
+</body>
+</html>
