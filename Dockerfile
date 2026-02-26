@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM gradle:8.3-jdk21 AS builder
+FROM gradle:8.3-jdk21-jammy AS builder
 WORKDIR /app
 COPY . .
 RUN gradle build --no-daemon
