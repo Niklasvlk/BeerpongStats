@@ -48,7 +48,7 @@ public class PlayerService {
     }
 
     public List<Player> getTopPlayers() {
-        return repository.findTop10ByOrderByWinRateDesc();
+        return repository.findTop10ByWinsPlusLossesGreaterThanEqualOrderByWinsDesc(10);
     }
 
     public List<Player> getAllPlayers() {

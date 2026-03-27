@@ -12,7 +12,7 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
 
     Optional<Player> findByName(String name);
 
-    List<Player> findTop10ByOrderByWinRateDesc();
+    List<Player> findTop10ByWinsPlusLossesGreaterThanEqualOrderByWinsDesc(int minGames);
 
     List<Player> findByNameContainingIgnoreCase(String name);
 
