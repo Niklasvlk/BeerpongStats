@@ -23,7 +23,7 @@ public class WebController {
 
     @GetMapping("/")
     public String index(Model model) {
-        model.addAttribute("players", playerService.getTopPlayers());
+        model.addAttribute("players", playerService.getLeaderboard());
         model.addAttribute("matches", matchService.getRecentMatches());
         return "index";
     }

@@ -5,6 +5,8 @@ import de.niklasvoelker.beerpongstats.exception.PlayerAlreadyExistsException;
 import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByIDException;
 import de.niklasvoelker.beerpongstats.model.Player;
 import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -47,8 +49,9 @@ public class PlayerService {
         repository.save(player);
     }
 
-    public List<Player> getTopPlayers() {
-        return repository.findLeaderboard(10);
+    public List<Player> getLeaderboard() {
+        Pageable top10 = PageRequest.of(0, 10);
+        return repository.findTopPlayersByWinrate(10, top10);
     }
 
     public List<Player> getAllPlayers() {
