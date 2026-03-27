@@ -49,4 +49,11 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
+    @ExceptionHandler(DuplicateMatchException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public String handleDuplicateMatch(DuplicateMatchException ex, Model model) {
+        model.addAttribute("errorMessage", ex.getMessage());
+        return "error";
+    }
 }

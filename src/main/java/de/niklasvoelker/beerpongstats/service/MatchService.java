@@ -1,5 +1,6 @@
 package de.niklasvoelker.beerpongstats.service;
 
+import de.niklasvoelker.beerpongstats.exception.DuplicateMatchException;
 import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByNameException;
 import de.niklasvoelker.beerpongstats.model.Match;
 import de.niklasvoelker.beerpongstats.model.Player;
@@ -40,6 +41,25 @@ public class MatchService {
         validateNoDuplicatePlayers(winner1, winner2, loser1, loser2);
         validateTeamConsistency(winner2, loser2);
 
+        LocalDateTime threeMinutesAgo = LocalDateTime.now().minusMinutes(3);
+
+        boolean exists = matchRepository
+                .existsByWinner1AndWinner2AndLoser1AndLoser2AndWinner1CupsAndWinner2CupsAndLoser1CupsAndLoser2CupsAndPlayedAtAfter(
+                        winner1,
+                        winner2,
+                        loser1,
+                        loser2,
+                        dto.getWinner1Cups(),
+                        dto.getWinner2Cups(),
+                        dto.getLoser1Cups(),
+                        dto.getLoser2Cups(),
+                        threeMinutesAgo
+                );
+
+        if (exists) {
+            throw new DuplicateMatchException("Match wurde doppelt eingetragen");
+        }
+
         Match match = Match.builder()
                 .winner1(winner1)
                 .winner2(winner2)
@@ -73,7 +93,7 @@ public class MatchService {
     }
 
     public List<Match> getAllMatches() {
-        return matchRepository.findAll();
+        return matchRepository.findAllByOrderByPlayedAtDesc();
     }
 
     public Optional<Match> getMatchById(Long id) {

@@ -52,7 +52,10 @@
             </div>
 
             <div class="form-row">
-                <button type="submit" class="btn-primary">Add Match</button>
+                <button type="submit" class="btn-primary"
+                        onclick="this.disabled=true; this.form.submit();">
+                    Add Match
+                </button>
             </div>
 
         </form>
