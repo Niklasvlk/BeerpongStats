@@ -10,9 +10,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,6 +25,9 @@ class PlayerServiceTest {
 
     @Mock
     private PlayerRepository repository;
+
+    @Spy
+    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @InjectMocks
     private PlayerService playerService;
@@ -38,7 +43,8 @@ class PlayerServiceTest {
 
         Player saved = captor.getValue();
         assertEquals("Max", saved.getName());
-        assertEquals("1234", saved.getPassword());
+        assertNotEquals("1234", saved.getPassword());
+        assertTrue(passwordEncoder.matches("1234", saved.getPassword()));
         assertEquals(0, saved.getWins());
         assertEquals(0, saved.getLosses());
         assertEquals(0, saved.getAvgCups());
@@ -96,6 +102,36 @@ class PlayerServiceTest {
         );
         assertTrue(ex.getMessage().contains("Max"));
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void authenticate_shouldReturnPlayerForCorrectPassword() {
+        Player player = Player.builder().name("Max").password(passwordEncoder.encode("1234")).build();
+        when(repository.findByName("Max")).thenReturn(Optional.of(player));
+
+        assertEquals(Optional.of(player), playerService.authenticate("Max", "1234"));
+    }
+
+    @Test
+    void authenticate_shouldReturnEmptyForWrongPassword() {
+        Player player = Player.builder().name("Max").password(passwordEncoder.encode("1234")).build();
+        when(repository.findByName("Max")).thenReturn(Optional.of(player));
+
+        assertTrue(playerService.authenticate("Max", "falsch").isEmpty());
+    }
+
+    @Test
+    void authenticate_shouldReturnEmptyForUnknownName() {
+        when(repository.findByName("Max")).thenReturn(Optional.empty());
+
+        assertTrue(playerService.authenticate("Max", "1234").isEmpty());
+    }
+
+    @Test
+    void authenticate_shouldReturnEmptyForNullInput() {
+        assertTrue(playerService.authenticate(null, "1234").isEmpty());
+        assertTrue(playerService.authenticate("Max", null).isEmpty());
+        verifyNoInteractions(repository);
     }
 
     @Test
