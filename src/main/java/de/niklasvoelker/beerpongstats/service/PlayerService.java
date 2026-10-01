@@ -8,18 +8,22 @@ import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PlayerService {
 
     private final PlayerRepository repository;
+    private final PasswordEncoder passwordEncoder;
 
-    public PlayerService(PlayerRepository repository) {
+    public PlayerService(PlayerRepository repository, PasswordEncoder passwordEncoder) {
         this.repository = repository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public void createPlayer(String name, String password) {
@@ -38,7 +42,7 @@ public class PlayerService {
 
         Player player = Player.builder()
                 .name(name.trim())
-                .password(password)
+                .password(passwordEncoder.encode(password))
                 .wins(0)
                 .losses(0)
                 .avgCups(0)
@@ -47,6 +51,15 @@ public class PlayerService {
                 .build();
 
         repository.save(player);
+    }
+
+    public Optional<Player> authenticate(String name, String rawPassword) {
+        if (name == null || rawPassword == null) {
+            return Optional.empty();
+        }
+
+        return repository.findByName(name)
+                .filter(player -> passwordEncoder.matches(rawPassword, player.getPassword()));
     }
 
     public List<Player> getLeaderboard() {
