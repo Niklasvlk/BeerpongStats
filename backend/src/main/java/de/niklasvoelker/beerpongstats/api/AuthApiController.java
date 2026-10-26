@@ -1,6 +1,7 @@
 package de.niklasvoelker.beerpongstats.api;
 
 import de.niklasvoelker.beerpongstats.api.dto.LoginRequest;
+import de.niklasvoelker.beerpongstats.config.PlayerUserDetails;
 import de.niklasvoelker.beerpongstats.api.dto.PlayerResponse;
 import de.niklasvoelker.beerpongstats.model.Player;
 import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
@@ -64,8 +65,10 @@ public class AuthApiController {
     }
 
     private PlayerResponse currentPlayer(Authentication authentication) {
-        Player player = playerRepository.findByName(authentication.getName())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Spieler nicht gefunden."));
+        PlayerUserDetails principal = (PlayerUserDetails) authentication.getPrincipal();
+        // Existiert der Spieler nicht mehr (Profil gelöscht), ist die Session ungültig
+        Player player = playerRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         return PlayerResponse.from(player);
     }
 }

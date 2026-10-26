@@ -53,8 +53,8 @@ class MatchServiceTest {
         dto.setWinner1Cups(3);
         dto.setLoser1Cups(1);
 
-        when(playerRepository.findByName("A")).thenReturn(Optional.of(playerA));
-        when(playerRepository.findByName("B")).thenReturn(Optional.of(playerB));
+        when(playerRepository.findByNameIgnoreCase("A")).thenReturn(Optional.of(playerA));
+        when(playerRepository.findByNameIgnoreCase("B")).thenReturn(Optional.of(playerB));
 
         matchService.createMatch(dto);
 
@@ -91,10 +91,10 @@ class MatchServiceTest {
         dto.setLoser1Cups(1);
         dto.setLoser2Cups(0);
 
-        when(playerRepository.findByName("A")).thenReturn(Optional.of(playerA));
-        when(playerRepository.findByName("B")).thenReturn(Optional.of(playerB));
-        when(playerRepository.findByName("C")).thenReturn(Optional.of(playerC));
-        when(playerRepository.findByName("D")).thenReturn(Optional.of(playerD));
+        when(playerRepository.findByNameIgnoreCase("A")).thenReturn(Optional.of(playerA));
+        when(playerRepository.findByNameIgnoreCase("B")).thenReturn(Optional.of(playerB));
+        when(playerRepository.findByNameIgnoreCase("C")).thenReturn(Optional.of(playerC));
+        when(playerRepository.findByNameIgnoreCase("D")).thenReturn(Optional.of(playerD));
 
         matchService.createMatch(dto);
 
@@ -129,7 +129,7 @@ class MatchServiceTest {
         dto.setWinner1Cups(3);
         dto.setLoser1Cups(1);
 
-        when(playerRepository.findByName("A")).thenReturn(Optional.empty());
+        when(playerRepository.findByNameIgnoreCase("A")).thenReturn(Optional.empty());
 
         assertThrows(PlayerNotFoundByNameException.class,
                 () -> matchService.createMatch(dto));

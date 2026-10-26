@@ -2,11 +2,14 @@ package de.niklasvoelker.beerpongstats.api;
 
 import de.niklasvoelker.beerpongstats.api.dto.CreatePlayerRequest;
 import de.niklasvoelker.beerpongstats.api.dto.PlayerResponse;
+import de.niklasvoelker.beerpongstats.config.PlayerUserDetails;
 import de.niklasvoelker.beerpongstats.model.Player;
 import de.niklasvoelker.beerpongstats.service.PlayerService;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -65,11 +68,13 @@ public class PlayerApiController {
     // Nur das eigene Profil darf gelöscht werden
     @DeleteMapping("/players/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletePlayer(@PathVariable Long id, Authentication authentication) {
-        Player player = playerService.getPlayerById(id);
-        if (!player.getName().equals(authentication.getName())) {
+    public void deletePlayer(@PathVariable Long id, @AuthenticationPrincipal PlayerUserDetails principal,
+                             HttpServletRequest request) throws ServletException {
+        if (!principal.getId().equals(id)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nur das eigene Profil kann gelöscht werden.");
         }
         playerService.deletePlayer(id);
+        // Die Session gehört zum gelöschten Spieler und darf nicht weiterleben
+        request.logout();
     }
 }

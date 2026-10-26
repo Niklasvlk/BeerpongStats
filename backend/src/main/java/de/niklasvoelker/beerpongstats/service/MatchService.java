@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -41,7 +42,7 @@ public class MatchService {
         validateNoDuplicatePlayers(winner1, winner2, loser1, loser2);
         validateTeamConsistency(winner2, loser2);
 
-        LocalDateTime threeMinutesAgo = LocalDateTime.now().minusMinutes(3);
+        LocalDateTime threeMinutesAgo = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(3);
 
         boolean exists = matchRepository
                 .existsByWinner1AndWinner2AndLoser1AndLoser2AndWinner1CupsAndWinner2CupsAndLoser1CupsAndLoser2CupsAndPlayedAtAfter(
@@ -69,7 +70,7 @@ public class MatchService {
                 .winner2Cups(dto.getWinner2Cups())
                 .loser1Cups(dto.getLoser1Cups())
                 .loser2Cups(dto.getLoser2Cups())
-                .playedAt(LocalDateTime.now())
+                .playedAt(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
 
         Match saved = matchRepository.save(match);
@@ -145,7 +146,7 @@ public class MatchService {
     }
 
     private Player getPlayerByName(String name) {
-        return playerRepository.findByName(name)
+        return playerRepository.findByNameIgnoreCase(name)
                 .orElseThrow(() -> new PlayerNotFoundByNameException(name));
     }
 

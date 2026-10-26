@@ -12,9 +12,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -102,6 +105,26 @@ class PlayerServiceTest {
         );
         assertTrue(ex.getMessage().contains("Max"));
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void createPlayer_shouldReportDuplicateWhenTheUniqueIndexRejectsTheInsert() {
+        when(repository.existsByNameIgnoreCase("Max")).thenReturn(false);
+        when(repository.save(any())).thenThrow(new DataIntegrityViolationException("ux_player_name_lower"));
+
+        assertThrows(PlayerAlreadyExistsException.class, () -> playerService.createPlayer("Max", "1234"));
+    }
+
+    @Test
+    void createPlayer_shouldStoreTheCreationTimeInUtc() {
+        when(repository.existsByNameIgnoreCase("Max")).thenReturn(false);
+        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        LocalDateTime before = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1);
+
+        Player saved = playerService.createPlayer("Max", "1234");
+
+        assertFalse(saved.getCreatedAt().isBefore(before));
+        assertFalse(saved.getCreatedAt().isAfter(LocalDateTime.now(ZoneOffset.UTC).plusSeconds(1)));
     }
 
     @Test

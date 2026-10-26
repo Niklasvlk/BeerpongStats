@@ -7,7 +7,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,11 +29,8 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService(PlayerRepository playerRepository) {
-        return username -> playerRepository.findByName(username)
-                .map(player -> User.withUsername(player.getName())
-                        .password(player.getPassword())
-                        .roles("PLAYER")
-                        .build())
+        return username -> playerRepository.findByNameIgnoreCase(username)
+                .<UserDetails>map(player -> new PlayerUserDetails(player.getId(), player.getName(), player.getPassword()))
                 .orElseThrow(() -> new UsernameNotFoundException(username));
     }
 

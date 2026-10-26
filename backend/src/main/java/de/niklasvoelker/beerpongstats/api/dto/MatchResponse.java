@@ -3,7 +3,7 @@ package de.niklasvoelker.beerpongstats.api.dto;
 import de.niklasvoelker.beerpongstats.model.Match;
 import de.niklasvoelker.beerpongstats.model.Player;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -18,7 +18,7 @@ public record MatchResponse(
         Integer loser1Cups,
         Integer loser2Cups,
         Integer mvpCups,
-        LocalDateTime playedAt
+        Instant playedAt
 ) {
     public record PlayerRef(Long id, String name) {
         static PlayerRef from(Player player) {
@@ -44,7 +44,7 @@ public record MatchResponse(
                 match.getLoser1Cups(),
                 match.getLoser2Cups(),
                 mvpCups,
-                match.getPlayedAt()
+                Timestamps.toInstant(match.getPlayedAt())
         );
     }
 }

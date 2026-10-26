@@ -11,7 +11,8 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
-                .resourceChain(true)
+                // Kein Cache: der Fallback liefert für jeden unbekannten Pfad index.html, ein Cache würde unbegrenzt wachsen
+                .resourceChain(false)
                 .addResolver(new SpaResourceResolver());
     }
 }

@@ -2,7 +2,7 @@ package de.niklasvoelker.beerpongstats.api.dto;
 
 import de.niklasvoelker.beerpongstats.model.Player;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record PlayerResponse(
         Long id,
@@ -11,7 +11,7 @@ public record PlayerResponse(
         int losses,
         double winRate,
         double avgCups,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static PlayerResponse from(Player player) {
         return new PlayerResponse(
@@ -21,7 +21,7 @@ public record PlayerResponse(
                 player.getLosses(),
                 player.getWinRate(),
                 player.getAvgCups(),
-                player.getCreatedAt()
+                Timestamps.toInstant(player.getCreatedAt())
         );
     }
 }

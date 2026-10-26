@@ -5,6 +5,7 @@ import de.niklasvoelker.beerpongstats.exception.PlayerAlreadyExistsException;
 import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByIDException;
 import de.niklasvoelker.beerpongstats.model.Player;
 import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -12,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -46,10 +48,15 @@ public class PlayerService {
                 .losses(0)
                 .avgCups(0)
                 .winRate(0)
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
 
-        return repository.save(player);
+        try {
+            return repository.save(player);
+        } catch (DataIntegrityViolationException e) {
+            // Gleichzeitige Registrierung: der Unique-Index auf lower(name) hat die zweite abgelehnt
+            throw new PlayerAlreadyExistsException(name);
+        }
     }
 
     public void deletePlayer(Long id) {
