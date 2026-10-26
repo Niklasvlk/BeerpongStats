@@ -1,9 +1,10 @@
 import { DecimalPipe, PercentPipe } from '@angular/common';
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { PlayerApi } from '../../api/player-api';
 import { PlayerSort } from '../../api/models';
+import { listValue } from '../../shared/list-value';
 import { winRateColor } from '../../shared/win-rate-color';
 
 @Component({
@@ -23,8 +24,7 @@ export class PlayerList {
     params: () => ({ sort: this.sort(), name: this.name() }),
     stream: ({ params }) => (params.name ? this.api.search(params.name) : this.api.list(params.sort)),
   });
-  // value() wirft im Fehlerzustand, daher erst hasValue() prüfen
-  protected readonly list = computed(() => (this.players.hasValue() ? this.players.value() : []));
+  protected readonly list = listValue(this.players);
   protected readonly winRateColor = winRateColor;
 
   protected search(name: string): void {

@@ -6,6 +6,9 @@
       <app-match-card [match]="match" />
     }
   </div>
+  @if (allMatches.error()) {
+    <p class="error-text">Die Matches konnten nicht geladen werden.</p>
+  }
 
   <div style="margin-top: 25px;">
     <a routerLink="/" class="btn-primary">Back to Home</a>

@@ -32,8 +32,12 @@ export class Profile {
     if (!player || !confirm('Willst du dein Profil wirklich löschen?')) return;
 
     this.players.delete(player.id).subscribe({
-      // Die Session überlebt das Löschen serverseitig, deshalb danach ausloggen
-      next: () => this.logout(),
+      // Das Backend beendet die Session beim Löschen selbst und entfernt dabei das CSRF-Cookie,
+      // ein zusätzliches POST /logout wäre ohne Token ein 403
+      next: () => {
+        this.auth.forgetUser();
+        this.router.navigateByUrl('/');
+      },
       error: (err) => this.error.set(errorMessage(err)),
     });
   }

@@ -24,6 +24,11 @@ export class AuthApi {
       .pipe(tap((player) => this.user.set(player)));
   }
 
+  // Der Server hat die Session beendet (z. B. nach dem Löschen des Profils), hier muss nur der Zustand geleert werden
+  forgetUser(): void {
+    this.user.set(null);
+  }
+
   logout(): Observable<void> {
     return this.http.post<void>('/api/auth/logout', null).pipe(tap(() => this.user.set(null)));
   }

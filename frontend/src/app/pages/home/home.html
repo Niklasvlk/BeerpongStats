@@ -11,6 +11,9 @@
       </a>
     }
   </div>
+  @if (leaderboard.error()) {
+    <p class="error-text">Das Leaderboard konnte nicht geladen werden.</p>
+  }
 </section>
 
 <section>
@@ -20,4 +23,7 @@
       <app-match-card [match]="match" />
     }
   </div>
+  @if (recentMatches.error()) {
+    <p class="error-text">Die letzten Matches konnten nicht geladen werden.</p>
+  }
 </section>

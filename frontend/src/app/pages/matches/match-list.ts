@@ -1,8 +1,9 @@
 import { Component, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatchApi } from '../../api/match-api';
 import { MatchCard } from '../../shared/match-card';
+import { listValue } from '../../shared/list-value';
 
 @Component({
   selector: 'app-match-list',
@@ -10,5 +11,8 @@ import { MatchCard } from '../../shared/match-card';
   templateUrl: './match-list.html',
 })
 export class MatchList {
-  protected readonly matches = toSignal(inject(MatchApi).list(), { initialValue: [] });
+  private readonly api = inject(MatchApi);
+
+  protected readonly allMatches = rxResource({ stream: () => this.api.list() });
+  protected readonly matches = listValue(this.allMatches);
 }

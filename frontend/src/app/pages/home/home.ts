@@ -1,10 +1,11 @@
 import { PercentPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatchApi } from '../../api/match-api';
 import { PlayerApi } from '../../api/player-api';
 import { MatchCard } from '../../shared/match-card';
+import { listValue } from '../../shared/list-value';
 import { winRateColor } from '../../shared/win-rate-color';
 
 @Component({
@@ -13,7 +14,12 @@ import { winRateColor } from '../../shared/win-rate-color';
   templateUrl: './home.html',
 })
 export class Home {
-  protected readonly players = toSignal(inject(PlayerApi).leaderboard(), { initialValue: [] });
-  protected readonly matches = toSignal(inject(MatchApi).recent(), { initialValue: [] });
+  private readonly playerApi = inject(PlayerApi);
+  private readonly matchApi = inject(MatchApi);
+
+  protected readonly leaderboard = rxResource({ stream: () => this.playerApi.leaderboard() });
+  protected readonly recentMatches = rxResource({ stream: () => this.matchApi.recent() });
+  protected readonly players = listValue(this.leaderboard);
+  protected readonly matches = listValue(this.recentMatches);
   protected readonly winRateColor = winRateColor;
 }

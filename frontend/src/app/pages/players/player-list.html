@@ -26,6 +26,9 @@
       </a>
     }
   </div>
+  @if (players.error()) {
+    <p class="error-text">Die Spieler konnten nicht geladen werden.</p>
+  }
 
   <div style="margin-top: 25px;">
     <a routerLink="/" class="btn-primary">Back to Home</a>
