@@ -1,0 +1,15 @@
+<header class="navbar">
+  <div class="nav-logo">🍺 BeerpongStats</div>
+  <button class="hamburger" (click)="toggleNav()">☰</button>
+  <nav class="nav-links" [class.active]="navOpen()">
+    <a routerLink="/newMatch">New Match</a>
+    <a routerLink="/newPlayer">New Player</a>
+    <a routerLink="/players">Players</a>
+    <a routerLink="/matches">Matches</a>
+    <a routerLink="/profile" class="btn-primary">{{ auth.currentUser()?.name ?? 'My Profile' }}</a>
+  </nav>
+</header>
+
+<main class="container">
+  <router-outlet />
+</main>
