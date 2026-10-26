@@ -30,12 +30,12 @@
     <section>
         <h2>Login</h2>
 
-        <form th:action="@{/profile/login}" th:object="${loginDTO}" method="post" class="form-card">
+        <form th:action="@{/profile/login}" method="post" class="form-card">
             <div class="form-row">
-                <input type="text" th:field="*{name}" placeholder="Name" required>
+                <input type="text" name="name" placeholder="Name" required>
             </div>
             <div class="form-row">
-                <input type="password" th:field="*{password}" placeholder="Passwort" required>
+                <input type="password" name="password" placeholder="Passwort" required>
             </div>
             <div class="form-row">
                 <button type="submit" class="btn-primary">Login</button>

@@ -1,10 +1,12 @@
 package de.niklasvoelker.beerpongstats.exception;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -20,6 +22,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PlayerNotFoundByNameException.class)
     public String handlePlayerNotFoundByName(PlayerNotFoundByNameException ex, Model model) {
         model.addAttribute("errorMessage", ex.getMessage());
+        return "error";
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public String handleResponseStatus(ResponseStatusException ex, Model model, HttpServletResponse response) {
+        response.setStatus(ex.getStatusCode().value());
+        model.addAttribute("errorMessage", "Zugriff nicht möglich.");
         return "error";
     }
 

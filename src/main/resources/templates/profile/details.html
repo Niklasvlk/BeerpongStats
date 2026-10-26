@@ -40,6 +40,9 @@
             </div>
 
             <div style="margin-top: 20px;">
+                <form th:action="@{/profile/logout}" method="post" style="margin-bottom: 10px;">
+                    <button type="submit" class="btn-primary">Logout</button>
+                </form>
                 <form th:action="@{/profile/delete/{id}(id=${player.id})}" method="post">
                     <button type="submit" class="btn-danger"
                             onclick="return confirm('Willst du dein Profil wirklich löschen?')">
