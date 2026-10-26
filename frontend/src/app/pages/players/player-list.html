@@ -1,0 +1,33 @@
+<section>
+  <h2>All Players</h2>
+
+  <div class="sort-links">
+    Sort by:
+    <a [routerLink]="['/players']" [queryParams]="{ sort: 'winrate' }" class="btn-secondary">Winrate</a>
+    <a [routerLink]="['/players']" [queryParams]="{ sort: 'avgCups' }" class="btn-secondary">Avg Cups</a>
+    <a [routerLink]="['/players']" [queryParams]="{ sort: 'name' }" class="btn-secondary">Alphabet</a>
+  </div>
+
+  <form class="form-card" (submit)="search(query.value); $event.preventDefault()">
+    <div class="form-row">
+      <input #query type="text" placeholder="Spielername suchen" [value]="name() ?? ''" />
+      <button type="submit" class="btn-primary">Search</button>
+    </div>
+  </form>
+
+  <div class="player-list">
+    @for (player of list(); track player.id) {
+      <a class="player-card" [routerLink]="['/players', player.id]">
+        <div class="player-name">{{ player.name }}</div>
+        <div class="player-stats">
+          <span [style.color]="winRateColor(player.winRate)">{{ player.winRate | percent: '1.2-2' }}</span>
+          <span>Avg Cups: {{ player.avgCups | number: '1.2-2' }}</span>
+        </div>
+      </a>
+    }
+  </div>
+
+  <div style="margin-top: 25px;">
+    <a routerLink="/" class="btn-primary">Back to Home</a>
+  </div>
+</section>

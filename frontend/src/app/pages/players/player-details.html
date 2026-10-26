@@ -1,0 +1,19 @@
+<section>
+  <div class="player-details-card">
+    @if (player.hasValue()) {
+      @let p = player.value();
+      <div class="player-name">{{ p.name }}</div>
+      <div class="player-stats">
+        <div>Wins: <span>{{ p.wins }}</span></div>
+        <div>Losses: <span>{{ p.losses }}</span></div>
+        <div>Winrate: <span>{{ p.winRate | percent: '1.2-2' }}</span></div>
+        <div>Avg Cups: <span>{{ p.avgCups | number: '1.2-2' }}</span></div>
+      </div>
+    } @else if (player.error()) {
+      <p class="error-text">Spieler nicht gefunden.</p>
+    }
+    <div style="margin-top: 20px;">
+      <a routerLink="/players" class="btn-primary">Back to Players</a>
+    </div>
+  </div>
+</section>

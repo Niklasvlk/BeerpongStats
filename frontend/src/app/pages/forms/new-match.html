@@ -1,0 +1,28 @@
+<section>
+  <h2>Create a New Match</h2>
+
+  <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="form-row">
+      <input type="text" formControlName="winner1" placeholder="Winner 1" />
+      <input type="number" formControlName="winner1Cups" placeholder="Winner 1 Cups" min="0" max="10" />
+    </div>
+    <div class="form-row">
+      <input type="text" formControlName="winner2" placeholder="Winner 2" />
+      <input type="number" formControlName="winner2Cups" placeholder="Winner 2 Cups" min="0" max="10" />
+    </div>
+    <div class="form-row">
+      <input type="text" formControlName="loser1" placeholder="Loser 1" />
+      <input type="number" formControlName="loser1Cups" placeholder="Loser 1 Cups" min="0" max="10" />
+    </div>
+    <div class="form-row">
+      <input type="text" formControlName="loser2" placeholder="Loser 2" />
+      <input type="number" formControlName="loser2Cups" placeholder="Loser 2 Cups" min="0" max="10" />
+    </div>
+    <div class="form-row">
+      <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">Add Match</button>
+    </div>
+    @if (error(); as message) {
+      <p class="error-text">{{ message }}</p>
+    }
+  </form>
+</section>

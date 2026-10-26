@@ -1,0 +1,13 @@
+<section>
+  <h2>All Matches</h2>
+
+  <div class="match-list">
+    @for (match of matches(); track match.id) {
+      <app-match-card [match]="match" />
+    }
+  </div>
+
+  <div style="margin-top: 25px;">
+    <a routerLink="/" class="btn-primary">Back to Home</a>
+  </div>
+</section>
