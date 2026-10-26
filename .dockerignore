@@ -1,7 +1,7 @@
 .git
-.gradle
+backend/.gradle
 .idea
-build
+backend/build
 deploy
 *.md
 docker-compose.yml

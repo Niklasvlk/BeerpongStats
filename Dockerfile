@@ -7,10 +7,10 @@ RUN npm run build
 
 FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /src
-COPY gradlew settings.gradle.kts build.gradle.kts ./
-COPY gradle gradle
+COPY backend/gradlew backend/settings.gradle.kts backend/build.gradle.kts ./
+COPY backend/gradle gradle
 RUN chmod +x gradlew && ./gradlew --no-daemon dependencies > /dev/null
-COPY src src
+COPY backend/src src
 # Angular-Build wird vom Spring-Server als statische Dateien ausgeliefert
 COPY --from=frontend /frontend/dist/frontend/browser src/main/resources/static
 RUN ./gradlew --no-daemon bootJar -x test

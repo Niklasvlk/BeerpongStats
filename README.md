@@ -2,7 +2,7 @@
 
 Statistik-App für Beerpong: Spieler, Matches und ein Leaderboard.
 
-- **Backend:** Spring Boot 4 (Java 21), PostgreSQL, REST-API unter `/api`
+- **Backend:** Spring Boot 4 (Java 21), PostgreSQL, REST-API unter `/api` (`backend/`)
 - **Frontend:** Angular (`frontend/`), wird in Produktion vom Backend mit ausgeliefert
 
 ## Produktion / alles in Docker
@@ -19,6 +19,7 @@ Danach ist alles unter http://localhost:8080 erreichbar.
 Backend (braucht eine laufende Postgres-DB, z. B. `docker compose up -d db`):
 
 ```bash
+cd backend
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/beerpongdb \
 SPRING_DATASOURCE_USERNAME=beerpong \
 SPRING_DATASOURCE_PASSWORD=beerpong123 \
@@ -39,6 +40,6 @@ Dann http://localhost:4200 öffnen.
 ## Tests
 
 ```bash
-./gradlew test
+cd backend && ./gradlew test
 cd frontend && npm test
 ```
