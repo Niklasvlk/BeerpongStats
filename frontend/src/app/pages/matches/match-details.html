@@ -1,0 +1,42 @@
+<section>
+  @if (match.hasValue()) {
+    @let m = match.value();
+    <h2>Match am {{ (m.playedAt | date: 'dd.MM.yyyy HH:mm') ?? 'kein Datum' }}</h2>
+
+    <div class="match-details-card">
+      <h3>Winners</h3>
+      <ul class="details-list">
+        @for (p of winners(m); track p.player.id) {
+          <li>
+            <span class="winner-name">{{ p.player.name }}</span>
+            @if (p.cups !== null && p.cups === m.mvpCups) {
+              <span class="mvp"> 👑 MVP</span>
+            }
+            - Cups: {{ p.cups ?? 'nicht eingetragen' }}
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="match-details-card">
+      <h3>Losers</h3>
+      <ul class="details-list">
+        @for (p of losers(m); track p.player.id) {
+          <li>
+            <span class="loser-name">{{ p.player.name }}</span>
+            @if (p.cups !== null && p.cups === m.mvpCups) {
+              <span class="mvp"> 👑 MVP</span>
+            }
+            - Cups: {{ p.cups ?? 'nicht eingetragen' }}
+          </li>
+        }
+      </ul>
+    </div>
+  } @else if (match.error()) {
+    <p class="error-text">Match nicht gefunden.</p>
+  }
+
+  <div style="margin-top: 20px;">
+    <a routerLink="/matches" class="btn-primary">Back to Matches</a>
+  </div>
+</section>

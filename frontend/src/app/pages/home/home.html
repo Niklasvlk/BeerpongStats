@@ -1,0 +1,29 @@
+<section>
+  <h2>Leaderboard</h2>
+  <div class="card-grid">
+    @for (player of players(); track player.id) {
+      <a class="card card-link" [routerLink]="['/players', player.id]">
+        <div class="card-title">{{ player.name }}</div>
+        <div class="card-stat">
+          Win Rate:
+          <span [style.color]="winRateColor(player.winRate)">{{ player.winRate | percent: '1.2-2' }}</span>
+        </div>
+      </a>
+    }
+  </div>
+  @if (leaderboard.error()) {
+    <p class="error-text">Das Leaderboard konnte nicht geladen werden.</p>
+  }
+</section>
+
+<section>
+  <h2>Recent Matches</h2>
+  <div class="match-list">
+    @for (match of matches(); track match.id) {
+      <app-match-card [match]="match" />
+    }
+  </div>
+  @if (recentMatches.error()) {
+    <p class="error-text">Die letzten Matches konnten nicht geladen werden.</p>
+  }
+</section>

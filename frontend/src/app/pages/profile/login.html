@@ -1,0 +1,18 @@
+<section>
+  <h2>Login</h2>
+
+  <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="form-row">
+      <input type="text" formControlName="name" placeholder="Name" />
+    </div>
+    <div class="form-row">
+      <input type="password" formControlName="password" placeholder="Passwort" />
+    </div>
+    <div class="form-row">
+      <button type="submit" class="btn-primary" [disabled]="form.invalid">Login</button>
+    </div>
+    @if (error(); as message) {
+      <p class="error-text">{{ message }}</p>
+    }
+  </form>
+</section>

@@ -1,0 +1,98 @@
+package de.niklasvoelker.beerpongstats.service;
+
+import de.niklasvoelker.beerpongstats.exception.InvalidPlayerDataException;
+import de.niklasvoelker.beerpongstats.exception.PlayerAlreadyExistsException;
+import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByIDException;
+import de.niklasvoelker.beerpongstats.model.Player;
+import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+
+@Service
+public class PlayerService {
+
+    private final PlayerRepository repository;
+    private final PasswordEncoder passwordEncoder;
+
+    public PlayerService(PlayerRepository repository, PasswordEncoder passwordEncoder) {
+        this.repository = repository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    public Player createPlayer(String name, String password) {
+
+        if (name == null || name.trim().isEmpty()) {
+            throw new InvalidPlayerDataException("Der Spielername darf nicht leer sein.");
+        }
+
+        if (password == null || password.length() < 4) {
+            throw new InvalidPlayerDataException("Das Passwort ist zu kurz.");
+        }
+
+        if (repository.existsByNameIgnoreCase(name.trim())) {
+            throw new PlayerAlreadyExistsException(name);
+        }
+
+        Player player = Player.builder()
+                .name(name.trim())
+                .password(passwordEncoder.encode(password))
+                .wins(0)
+                .losses(0)
+                .avgCups(0)
+                .winRate(0)
+                .createdAt(LocalDateTime.now(ZoneOffset.UTC))
+                .build();
+
+        try {
+            return repository.save(player);
+        } catch (DataIntegrityViolationException e) {
+            // Gleichzeitige Registrierung: der Unique-Index auf lower(name) hat die zweite abgelehnt
+            throw new PlayerAlreadyExistsException(name);
+        }
+    }
+
+    public void deletePlayer(Long id) {
+        if (!repository.existsById(id)) {
+            throw new PlayerNotFoundByIDException(id);
+        }
+        repository.deleteById(id);
+    }
+
+    public List<Player> getLeaderboard() {
+        Pageable top10 = PageRequest.of(0, 10);
+        return repository.findTopPlayersByWinrate(10, top10);
+    }
+
+    public List<Player> getAllPlayers() {
+        return repository.findAll();
+    }
+
+    public Player getPlayerById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new PlayerNotFoundByIDException(id));
+    }
+
+    public List<Player> findByNameContaining(String name) {
+        return repository.findByNameContainingIgnoreCase(name);
+    }
+
+    public List<Player> getAllPlayersSortedByWinRate() {
+        return repository.findAll(Sort.by(Sort.Direction.DESC, "winRate"));
+    }
+
+    public List<Player> getAllPlayersSortedByAvgCups() {
+        return repository.findAll(Sort.by(Sort.Direction.DESC, "avgCups"));
+    }
+
+    public List<Player> getAllPlayersSortedByName() {
+        return repository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+    }
+}
