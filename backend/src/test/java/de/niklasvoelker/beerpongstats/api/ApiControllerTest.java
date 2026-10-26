@@ -159,8 +159,8 @@ class ApiControllerTest {
                 .andExpect(jsonPath("$.id").value(7));
     }
 
-    private PlayerUserDetails principal(Long id, String name) {
-        return new PlayerUserDetails(id, name, "x");
+    private PlayerUserDetails principal() {
+        return new PlayerUserDetails(1L, "Max", "x");
     }
 
     @Test
@@ -173,7 +173,7 @@ class ApiControllerTest {
     void me_shouldReturnCurrentPlayer() throws Exception {
         when(playerRepository.findById(1L)).thenReturn(Optional.of(player(1L, "Max")));
 
-        mockMvc.perform(get("/api/auth/me").with(user(principal(1L, "Max"))))
+        mockMvc.perform(get("/api/auth/me").with(user(principal())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Max"));
     }
@@ -182,7 +182,7 @@ class ApiControllerTest {
     void me_shouldReturn401WhenPlayerWasDeleted() throws Exception {
         when(playerRepository.findById(1L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/auth/me").with(user(principal(1L, "Max"))))
+        mockMvc.perform(get("/api/auth/me").with(user(principal())))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -236,7 +236,7 @@ class ApiControllerTest {
 
     @Test
     void deletePlayer_shouldRejectForeignProfile() throws Exception {
-        mockMvc.perform(delete("/api/players/2").with(csrf()).with(user(principal(1L, "Max"))))
+        mockMvc.perform(delete("/api/players/2").with(csrf()).with(user(principal())))
                 .andExpect(status().isForbidden());
 
         verify(playerService, never()).deletePlayer(2L);
@@ -245,7 +245,7 @@ class ApiControllerTest {
     @Test
     void deletePlayer_shouldRejectSessionOfADeletedPlayerWithTheSameName() throws Exception {
         // Alte Session gehört zu Spieler 1; "Max" wurde inzwischen mit der ID 9 neu angelegt
-        mockMvc.perform(delete("/api/players/9").with(csrf()).with(user(principal(1L, "Max"))))
+        mockMvc.perform(delete("/api/players/9").with(csrf()).with(user(principal())))
                 .andExpect(status().isForbidden());
 
         verify(playerService, never()).deletePlayer(9L);
@@ -256,7 +256,7 @@ class ApiControllerTest {
         doThrow(new DataIntegrityViolationException("fk")).when(playerService).deletePlayer(1L);
         MockHttpSession session = new MockHttpSession();
 
-        mockMvc.perform(delete("/api/players/1").with(csrf()).session(session).with(user(principal(1L, "Max"))))
+        mockMvc.perform(delete("/api/players/1").with(csrf()).session(session).with(user(principal())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Der Spieler hat bereits Matches gespielt und kann nicht gelöscht werden."));
 
@@ -267,7 +267,7 @@ class ApiControllerTest {
     void deletePlayer_shouldDeleteOwnProfileAndEndTheSession() throws Exception {
         MockHttpSession session = new MockHttpSession();
 
-        mockMvc.perform(delete("/api/players/1").with(csrf()).session(session).with(user(principal(1L, "Max"))))
+        mockMvc.perform(delete("/api/players/1").with(csrf()).session(session).with(user(principal())))
                 .andExpect(status().isNoContent());
 
         verify(playerService).deletePlayer(1L);

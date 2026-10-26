@@ -1,5 +1,6 @@
 package de.niklasvoelker.beerpongstats.config;
 
+import lombok.Getter;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.User;
 
@@ -7,6 +8,7 @@ import org.springframework.security.core.userdetails.User;
  * Angemeldeter Spieler. Die ID gehört zur Identität in der Session: Wird ein Spieler gelöscht und der Name später
  * neu vergeben, gehört eine alte Session damit nicht zum neuen Spieler.
  */
+@Getter
 public class PlayerUserDetails extends User {
 
     private final Long id;
@@ -16,7 +18,4 @@ public class PlayerUserDetails extends User {
         this.id = id;
     }
 
-    public Long getId() {
-        return id;
-    }
 }
