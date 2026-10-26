@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -209,6 +211,17 @@ class ApiControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(playerService, never()).deletePlayer(2L);
+    }
+
+    @Test
+    @WithMockUser(username = "Max")
+    void deletePlayer_shouldReturn409WhenPlayerHasMatches() throws Exception {
+        when(playerService.getPlayerById(1L)).thenReturn(player(1L, "Max"));
+        doThrow(new DataIntegrityViolationException("fk")).when(playerService).deletePlayer(1L);
+
+        mockMvc.perform(delete("/api/players/1").with(csrf()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Der Spieler hat bereits Matches gespielt und kann nicht gelöscht werden."));
     }
 
     @Test

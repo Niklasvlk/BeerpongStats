@@ -15,11 +15,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
-import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 
 @Configuration
 public class SecurityConfig {
@@ -48,7 +45,6 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/profile", "/profile/delete/**").authenticated()
                         .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/players/*").authenticated()
                         .anyRequest().permitAll())
@@ -56,23 +52,7 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
-                .exceptionHandling(ex -> ex
-                        .defaultAuthenticationEntryPointFor(
-                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                PathPatternRequestMatcher.withDefaults().matcher("/api/**"))
-                        .defaultAuthenticationEntryPointFor(
-                                new LoginUrlAuthenticationEntryPoint("/profile/login"),
-                                AnyRequestMatcher.INSTANCE))
-                .formLogin(form -> form
-                        .loginPage("/profile/login")
-                        .loginProcessingUrl("/profile/login")
-                        .usernameParameter("name")
-                        .defaultSuccessUrl("/profile", true)
-                        .failureUrl("/profile/login?error")
-                        .permitAll())
-                .logout(logout -> logout
-                        .logoutUrl("/profile/logout")
-                        .logoutSuccessUrl("/"));
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
         return http.build();
     }
 }

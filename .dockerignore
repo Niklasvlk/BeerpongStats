@@ -5,3 +5,6 @@ build
 deploy
 *.md
 docker-compose.yml
+frontend/node_modules
+frontend/dist
+frontend/.angular
