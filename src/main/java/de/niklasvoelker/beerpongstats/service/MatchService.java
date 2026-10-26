@@ -83,13 +83,6 @@ public class MatchService {
         return saved;
     }
 
-    public void deleteMatch(Long matchId) {
-        if (!matchRepository.existsById(matchId)) {
-            throw new RuntimeException("Match nicht gefunden: " + matchId);
-        }
-        matchRepository.deleteById(matchId);
-    }
-
     public List<Match> getRecentMatches() {
         return matchRepository.findTop10ByOrderByPlayedAtDesc();
     }

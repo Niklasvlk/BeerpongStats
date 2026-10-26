@@ -105,36 +105,6 @@ class PlayerServiceTest {
     }
 
     @Test
-    void authenticate_shouldReturnPlayerForCorrectPassword() {
-        Player player = Player.builder().name("Max").password(passwordEncoder.encode("1234")).build();
-        when(repository.findByName("Max")).thenReturn(Optional.of(player));
-
-        assertEquals(Optional.of(player), playerService.authenticate("Max", "1234"));
-    }
-
-    @Test
-    void authenticate_shouldReturnEmptyForWrongPassword() {
-        Player player = Player.builder().name("Max").password(passwordEncoder.encode("1234")).build();
-        when(repository.findByName("Max")).thenReturn(Optional.of(player));
-
-        assertTrue(playerService.authenticate("Max", "falsch").isEmpty());
-    }
-
-    @Test
-    void authenticate_shouldReturnEmptyForUnknownName() {
-        when(repository.findByName("Max")).thenReturn(Optional.empty());
-
-        assertTrue(playerService.authenticate("Max", "1234").isEmpty());
-    }
-
-    @Test
-    void authenticate_shouldReturnEmptyForNullInput() {
-        assertTrue(playerService.authenticate(null, "1234").isEmpty());
-        assertTrue(playerService.authenticate("Max", null).isEmpty());
-        verifyNoInteractions(repository);
-    }
-
-    @Test
     void getPlayerById_shouldReturnPlayerIfExists() {
         Player player = new Player();
         player.setId(1L);

@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class PlayerService {
@@ -58,15 +57,6 @@ public class PlayerService {
             throw new PlayerNotFoundByIDException(id);
         }
         repository.deleteById(id);
-    }
-
-    public Optional<Player> authenticate(String name, String rawPassword) {
-        if (name == null || rawPassword == null) {
-            return Optional.empty();
-        }
-
-        return repository.findByName(name)
-                .filter(player -> passwordEncoder.matches(rawPassword, player.getPassword()));
     }
 
     public List<Player> getLeaderboard() {
