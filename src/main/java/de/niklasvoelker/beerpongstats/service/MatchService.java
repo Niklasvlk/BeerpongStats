@@ -28,7 +28,7 @@ public class MatchService {
     }
 
     @Transactional
-    public void createMatch(MatchDTO dto) {
+    public Match createMatch(MatchDTO dto) {
 
         validateMatchDTO(dto);
 
@@ -72,13 +72,15 @@ public class MatchService {
                 .playedAt(LocalDateTime.now())
                 .build();
 
-        matchRepository.save(match);
+        Match saved = matchRepository.save(match);
 
         updateWinnerStats(winner1, dto.getWinner1Cups());
         updateWinnerStats(winner2, dto.getWinner2Cups());
 
         updateLoserStats(loser1, dto.getLoser1Cups());
         updateLoserStats(loser2, dto.getLoser2Cups());
+
+        return saved;
     }
 
     public void deleteMatch(Long matchId) {

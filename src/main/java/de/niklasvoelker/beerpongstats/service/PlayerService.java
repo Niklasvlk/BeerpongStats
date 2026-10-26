@@ -26,7 +26,7 @@ public class PlayerService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public void createPlayer(String name, String password) {
+    public Player createPlayer(String name, String password) {
 
         if (name == null || name.trim().isEmpty()) {
             throw new InvalidPlayerDataException("Der Spielername darf nicht leer sein.");
@@ -50,7 +50,14 @@ public class PlayerService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        repository.save(player);
+        return repository.save(player);
+    }
+
+    public void deletePlayer(Long id) {
+        if (!repository.existsById(id)) {
+            throw new PlayerNotFoundByIDException(id);
+        }
+        repository.deleteById(id);
     }
 
     public Optional<Player> authenticate(String name, String rawPassword) {
