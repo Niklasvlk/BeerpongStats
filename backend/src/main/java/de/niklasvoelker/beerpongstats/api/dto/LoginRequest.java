@@ -1,4 +1,4 @@
 package de.niklasvoelker.beerpongstats.api.dto;
 
-public record LoginRequest(String name, String password) {
+public record LoginRequest(String username, String password) {
 }

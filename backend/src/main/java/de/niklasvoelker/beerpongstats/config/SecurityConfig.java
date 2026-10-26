@@ -1,6 +1,6 @@
 package de.niklasvoelker.beerpongstats.config;
 
-import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
+import de.niklasvoelker.beerpongstats.repository.AppUserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -28,9 +28,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(PlayerRepository playerRepository) {
-        return username -> playerRepository.findByNameIgnoreCase(username)
-                .<UserDetails>map(player -> new PlayerUserDetails(player.getId(), player.getName(), player.getPassword()))
+    public UserDetailsService userDetailsService(AppUserRepository userRepository) {
+        return username -> userRepository.findByUsernameIgnoreCase(username)
+                .<UserDetails>map(user -> new AppUserDetails(user.getId(), user.getUsername(), user.getPassword()))
                 .orElseThrow(() -> new UsernameNotFoundException(username));
     }
 
@@ -43,8 +43,11 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/me").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/players/*").authenticated()
+                        // Logout ohne Session ist harmlos, ein 401 würde nur das Frontend stören
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/logout")
+                        .permitAll()
+                        .requestMatchers("/api/**").authenticated()
+                        // Alles außerhalb von /api sind die statischen Dateien des Frontends
                         .anyRequest().permitAll())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())

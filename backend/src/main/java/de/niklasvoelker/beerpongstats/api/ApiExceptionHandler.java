@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.core.AuthenticationException;
@@ -25,17 +24,10 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler({PlayerAlreadyExistsException.class, DuplicateMatchException.class,
-            InvalidPlayerDataException.class})
+    @ExceptionHandler({UserAlreadyExistsException.class, DuplicateMatchException.class,
+            InvalidUserDataException.class})
     public ProblemDetail handleConflict(RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-    }
-
-    // Ein Spieler, der in Matches vorkommt, kann nicht gelöscht werden (Fremdschlüssel)
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                "Der Spieler hat bereits Matches gespielt und kann nicht gelöscht werden.");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -45,7 +37,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(AuthenticationException.class)
     public ProblemDetail handleAuthentication(AuthenticationException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Name oder Passwort falsch");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Benutzername oder Passwort falsch");
     }
 
     @ExceptionHandler(Exception.class)

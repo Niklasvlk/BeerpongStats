@@ -1,23 +1,14 @@
 package de.niklasvoelker.beerpongstats.service;
 
-import de.niklasvoelker.beerpongstats.exception.InvalidPlayerDataException;
-import de.niklasvoelker.beerpongstats.exception.PlayerAlreadyExistsException;
 import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByIDException;
 import de.niklasvoelker.beerpongstats.model.Player;
 import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,103 +20,8 @@ class PlayerServiceTest {
     @Mock
     private PlayerRepository repository;
 
-    @Spy
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
     @InjectMocks
     private PlayerService playerService;
-
-    @Test
-    void createPlayer_shouldSavePlayerCorrectly() {
-        when(repository.existsByNameIgnoreCase("Max")).thenReturn(false);
-
-        playerService.createPlayer("Max", "1234");
-
-        ArgumentCaptor<Player> captor = ArgumentCaptor.forClass(Player.class);
-        verify(repository).save(captor.capture());
-
-        Player saved = captor.getValue();
-        assertEquals("Max", saved.getName());
-        assertNotEquals("1234", saved.getPassword());
-        assertTrue(passwordEncoder.matches("1234", saved.getPassword()));
-        assertEquals(0, saved.getWins());
-        assertEquals(0, saved.getLosses());
-        assertEquals(0, saved.getAvgCups());
-        assertEquals(0, saved.getWinRate());
-        assertNotNull(saved.getCreatedAt());
-    }
-
-    @Test
-    void createPlayer_shouldThrowIfNameEmpty() {
-        InvalidPlayerDataException ex = assertThrows(
-                InvalidPlayerDataException.class,
-                () -> playerService.createPlayer("   ", "1234")
-        );
-        assertEquals("Der Spielername darf nicht leer sein.", ex.getMessage());
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    void createPlayer_shouldThrowIfNameNull() {
-        InvalidPlayerDataException ex = assertThrows(
-                InvalidPlayerDataException.class,
-                () -> playerService.createPlayer(null, "1234")
-        );
-        assertEquals("Der Spielername darf nicht leer sein.", ex.getMessage());
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    void createPlayer_shouldThrowIfPasswordTooShort() {
-        InvalidPlayerDataException ex = assertThrows(
-                InvalidPlayerDataException.class,
-                () -> playerService.createPlayer("Max", "123")
-        );
-        assertEquals("Das Passwort ist zu kurz.", ex.getMessage());
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    void createPlayer_shouldThrowIfPasswordNull() {
-        InvalidPlayerDataException ex = assertThrows(
-                InvalidPlayerDataException.class,
-                () -> playerService.createPlayer("Max", null)
-        );
-        assertEquals("Das Passwort ist zu kurz.", ex.getMessage());
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    void createPlayer_shouldThrowIfPlayerExists() {
-        when(repository.existsByNameIgnoreCase("Max")).thenReturn(true);
-
-        PlayerAlreadyExistsException ex = assertThrows(
-                PlayerAlreadyExistsException.class,
-                () -> playerService.createPlayer("Max", "1234")
-        );
-        assertTrue(ex.getMessage().contains("Max"));
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    void createPlayer_shouldReportDuplicateWhenTheUniqueIndexRejectsTheInsert() {
-        when(repository.existsByNameIgnoreCase("Max")).thenReturn(false);
-        when(repository.save(any())).thenThrow(new DataIntegrityViolationException("ux_player_name_lower"));
-
-        assertThrows(PlayerAlreadyExistsException.class, () -> playerService.createPlayer("Max", "1234"));
-    }
-
-    @Test
-    void createPlayer_shouldStoreTheCreationTimeInUtc() {
-        when(repository.existsByNameIgnoreCase("Max")).thenReturn(false);
-        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        LocalDateTime before = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1);
-
-        Player saved = playerService.createPlayer("Max", "1234");
-
-        assertFalse(saved.getCreatedAt().isBefore(before));
-        assertFalse(saved.getCreatedAt().isAfter(LocalDateTime.now(ZoneOffset.UTC).plusSeconds(1)));
-    }
 
     @Test
     void getPlayerById_shouldReturnPlayerIfExists() {

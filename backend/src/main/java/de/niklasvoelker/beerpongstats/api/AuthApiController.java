@@ -1,14 +1,17 @@
 package de.niklasvoelker.beerpongstats.api;
 
 import de.niklasvoelker.beerpongstats.api.dto.LoginRequest;
-import de.niklasvoelker.beerpongstats.config.PlayerUserDetails;
-import de.niklasvoelker.beerpongstats.api.dto.PlayerResponse;
-import de.niklasvoelker.beerpongstats.model.Player;
-import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
+import de.niklasvoelker.beerpongstats.api.dto.RegisterRequest;
+import de.niklasvoelker.beerpongstats.api.dto.UserResponse;
+import de.niklasvoelker.beerpongstats.config.AppUserDetails;
+import de.niklasvoelker.beerpongstats.model.AppUser;
+import de.niklasvoelker.beerpongstats.repository.AppUserRepository;
+import de.niklasvoelker.beerpongstats.service.UserService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,25 +23,36 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthApiController {
 
     private final AuthenticationManager authenticationManager;
-    private final PlayerRepository playerRepository;
+    private final AppUserRepository userRepository;
+    private final UserService userService;
     private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
-    public AuthApiController(AuthenticationManager authenticationManager, PlayerRepository playerRepository) {
+    public AuthApiController(AuthenticationManager authenticationManager, AppUserRepository userRepository,
+                             UserService userService) {
         this.authenticationManager = authenticationManager;
-        this.playerRepository = playerRepository;
+        this.userRepository = userRepository;
+        this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserResponse> register(@RequestBody RegisterRequest request) {
+        AppUser user = userService.register(request.username(), request.password());
+        return ResponseEntity.created(URI.create("/api/auth/me")).body(UserResponse.from(user));
     }
 
     @PostMapping("/login")
-    public PlayerResponse login(@RequestBody LoginRequest login,
-                                HttpServletRequest request, HttpServletResponse response) {
+    public UserResponse login(@RequestBody LoginRequest login,
+                              HttpServletRequest request, HttpServletResponse response) {
         Authentication authentication = authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken.unauthenticated(login.name(), login.password()));
+                UsernamePasswordAuthenticationToken.unauthenticated(login.username(), login.password()));
 
         // Session-Fixation-Schutz
         if (request.getSession(false) != null) {
@@ -50,7 +64,7 @@ public class AuthApiController {
         contextHolder.setContext(context);
         contextRepository.saveContext(context, request, response);
 
-        return currentPlayer(authentication);
+        return currentUser(authentication);
     }
 
     @PostMapping("/logout")
@@ -60,15 +74,24 @@ public class AuthApiController {
     }
 
     @GetMapping("/me")
-    public PlayerResponse me(Authentication authentication) {
-        return currentPlayer(authentication);
+    public UserResponse me(Authentication authentication) {
+        return currentUser(authentication);
     }
 
-    private PlayerResponse currentPlayer(Authentication authentication) {
-        PlayerUserDetails principal = (PlayerUserDetails) authentication.getPrincipal();
-        // Existiert der Spieler nicht mehr (Profil gelöscht), ist die Session ungültig
-        Player player = playerRepository.findById(principal.getId())
+    // Löscht den eigenen Account
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMe(Authentication authentication, HttpServletRequest request) throws ServletException {
+        userService.deleteUser(((AppUserDetails) authentication.getPrincipal()).getId());
+        // Die Session gehört zum gelöschten Benutzer und darf nicht weiterleben
+        request.logout();
+    }
+
+    private UserResponse currentUser(Authentication authentication) {
+        AppUserDetails principal = (AppUserDetails) authentication.getPrincipal();
+        // Existiert der Benutzer nicht mehr (Account gelöscht), ist die Session ungültig
+        AppUser user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-        return PlayerResponse.from(player);
+        return UserResponse.from(user);
     }
 }
