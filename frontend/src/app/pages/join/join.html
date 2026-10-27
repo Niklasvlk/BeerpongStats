@@ -1,7 +1,9 @@
 <section>
   <h2>Einladung</h2>
 
-  @if (preview.hasValue()) {
+  @if (!validToken()) {
+    <p class="error-text">Diese Einladung ist ungültig oder abgelaufen.</p>
+  } @else if (preview.hasValue()) {
     @let invitation = preview.value();
     <div class="form-card">
       <p>

@@ -6,6 +6,7 @@ import { AuthApi } from '../../api/auth-api';
 import { GroupApi } from '../../api/group-api';
 import { InvitationApi } from '../../api/invitation-api';
 import { errorMessage } from '../../shared/error-message';
+import { isInvitationToken } from '../../shared/invitation-token';
 
 // Das Ziel eines Einladungslinks. Die Vorschau sieht jeder, Beitreten geht nur mit Account.
 @Component({
@@ -21,11 +22,14 @@ export class Join {
 
   // Route-Parameter :token
   readonly token = input.required<string>();
+  // Angular dekodiert %2F & Co. im Routenparameter. Was kein Token sein kann (z. B. ein präparierter Link mit
+  // "..%2F..%2F"), geht nicht an die API, sonst landete es im Pfad der Anfrage.
+  protected readonly validToken = computed(() => isInvitationToken(this.token()));
   // Nach dem Login oder der Registrierung geht es genau hierher zurück
   protected readonly returnUrl = computed(() => `/join/${this.token()}`);
 
   protected readonly preview = rxResource({
-    params: () => this.token(),
+    params: () => (this.validToken() ? this.token() : undefined),
     stream: ({ params }) => this.invitations.preview(params),
   });
 
@@ -40,7 +44,7 @@ export class Join {
   }
 
   protected join(): void {
-    if (this.form.invalid || this.submitting()) return;
+    if (!this.validToken() || this.form.invalid || this.submitting()) return;
     this.submitting.set(true);
     this.error.set(null);
 

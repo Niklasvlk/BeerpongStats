@@ -26,7 +26,7 @@ export class GroupApi {
 
   // Tritt über einen Einladungslink bei; die Gruppe ist danach geöffnet
   join(token: string, displayName?: string): Observable<Group> {
-    return this.http.post<Group>(`/api/invitations/${token}/accept`, { displayName }).pipe(
+    return this.http.post<Group>(`/api/invitations/${encodeURIComponent(token)}/accept`, { displayName }).pipe(
       tap((group) => {
         this.list.update((all) => [...all.filter((g) => g.id !== group.id), group]);
         this.open(group.id);

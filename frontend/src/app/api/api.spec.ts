@@ -249,6 +249,27 @@ describe('API services', () => {
     });
   });
 
+  describe('tokens in paths', () => {
+    // Auch wenn ein Aufrufer nicht prüft: Der Token darf den Pfad nicht verlassen
+    it('preview encodes everything that is not a plain token', () => {
+      TestBed.inject(InvitationApi).preview('a/../b?c#d').subscribe();
+      http.expectOne('/api/invitations/a%2F..%2Fb%3Fc%23d').flush({ groupName: 'x', memberCount: 1 });
+    });
+
+    it('join encodes everything that is not a plain token', () => {
+      TestBed.inject(GroupApi).join('x/../../auth/logout?').subscribe();
+      const req = http.expectOne('/api/invitations/x%2F..%2F..%2Fauth%2Flogout%3F/accept');
+      expect(req.request.method).toBe('POST');
+      req.flush(group(7));
+    });
+
+    it('a real token passes through unchanged', () => {
+      const token = 'abcdefghijklmnopqrstuvwxyz0123456789_-ABCDE';
+      TestBed.inject(InvitationApi).preview(token).subscribe();
+      http.expectOne(`/api/invitations/${token}`).flush({ groupName: 'x', memberCount: 1 });
+    });
+  });
+
   describe('InvitationApi', () => {
     it('preview asks for the invitation by its token', () => {
       TestBed.inject(InvitationApi).preview('abc').subscribe();

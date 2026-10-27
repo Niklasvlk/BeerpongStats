@@ -9,7 +9,7 @@ export class InvitationApi {
 
   // Ohne Login erreichbar: zeigt, wozu man mit dem Link eingeladen wird
   preview(token: string): Observable<InvitationPreview> {
-    return this.http.get<InvitationPreview>(`/api/invitations/${token}`);
+    return this.http.get<InvitationPreview>(`/api/invitations/${encodeURIComponent(token)}`);
   }
 
   // Die folgenden Aufrufe sind nur für Admins der Gruppe
