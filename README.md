@@ -46,10 +46,13 @@ Umgebungsvariablen überschreiben (z. B. `BEERPONG_RATE_LIMIT_LOGIN_PER_MINUTE=2
 | `beerpong.limits.max-groups-per-user` | 20 | Gruppen, in denen ein Account Mitglied sein kann |
 | `beerpong.limits.max-members-per-group` | 100 | Mitglieder (Spieler mit Account) einer Gruppe |
 | `beerpong.rate-limit.enabled` | true | Rate Limiting an oder aus |
-| `beerpong.rate-limit.login-per-minute` | 10 | Login-Versuche pro Minute und Client-Adresse |
-| `beerpong.rate-limit.register-per-hour` | 10 | Registrierungen pro Stunde und Client-Adresse |
+| `beerpong.rate-limit.login-per-minute` | 20 | Login-Versuche pro Minute und Client-Adresse |
+| `beerpong.rate-limit.register-per-hour` | 40 | Registrierungen pro Stunde und Client-Adresse |
 | `beerpong.rate-limit.join-per-minute` | 20 | Beitritte über Einladungslinks pro Minute und Client-Adresse |
 | `beerpong.rate-limit.failed-logins-per-username` | 10 | Falsche Passwörter pro 15 Minuten und Benutzername, von jeder Adresse |
+
+Die Grenzen pro Adresse sind großzügig, weil sich auf einer Party oder im Mobilfunk viele Leute eine Adresse teilen. Das
+gezielte Raten gegen einen Account bremst die Sperre pro Benutzername, unabhängig von der Adresse.
 
 Das Rate Limiting zählt im Speicher: Es gilt nur für die laufende Instanz und beginnt nach einem Neustart von vorn.
 Hinter einem Proxy (z. B. Render) zählt es nach der Adresse aus `X-Forwarded-For`; dafür muss
