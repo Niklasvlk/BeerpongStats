@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatchApi } from '../../api/match-api';
@@ -18,12 +18,14 @@ interface Participant {
 export class MatchDetails {
   private readonly api = inject(MatchApi);
 
-  // Route-Parameter :id
+  // Route-Parameter :groupId der Eltern-Route und :id
+  readonly groupId = input.required<string>();
   readonly id = input.required<string>();
+  protected readonly group = computed(() => Number(this.groupId()));
 
   protected readonly match = rxResource({
-    params: () => Number(this.id()),
-    stream: ({ params }) => this.api.get(params),
+    params: () => ({ group: this.group(), id: Number(this.id()) }),
+    stream: ({ params }) => this.api.get(params.group, params.id),
   });
 
   protected winners(match: Match): Participant[] {

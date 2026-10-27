@@ -3,9 +3,9 @@
 
   <div class="sort-links">
     Sort by:
-    <a [routerLink]="['/players']" [queryParams]="{ sort: 'winrate' }" class="btn-secondary">Winrate</a>
-    <a [routerLink]="['/players']" [queryParams]="{ sort: 'avgCups' }" class="btn-secondary">Avg Cups</a>
-    <a [routerLink]="['/players']" [queryParams]="{ sort: 'name' }" class="btn-secondary">Alphabet</a>
+    <a [routerLink]="['/g', group(), 'players']" [queryParams]="{ sort: 'winrate' }" class="btn-secondary">Winrate</a>
+    <a [routerLink]="['/g', group(), 'players']" [queryParams]="{ sort: 'avgCups' }" class="btn-secondary">Avg Cups</a>
+    <a [routerLink]="['/g', group(), 'players']" [queryParams]="{ sort: 'name' }" class="btn-secondary">Alphabet</a>
   </div>
 
   <form class="form-card" (submit)="search(query.value); $event.preventDefault()">
@@ -17,7 +17,7 @@
 
   <div class="player-list">
     @for (player of list(); track player.id) {
-      <a class="player-card" [routerLink]="['/players', player.id]">
+      <a class="player-card" [routerLink]="['/g', group(), 'players', player.id]">
         <div class="player-name">{{ player.name }}</div>
         <div class="player-stats">
           <span [style.color]="winRateColor(player.winRate)">{{ player.winRate | percent: '1.2-2' }}</span>
@@ -31,6 +31,6 @@
   }
 
   <div style="margin-top: 25px;">
-    <a routerLink="/" class="btn-primary">Back to Home</a>
+    <a [routerLink]="['/g', group()]" class="btn-primary">Back to Home</a>
   </div>
 </section>

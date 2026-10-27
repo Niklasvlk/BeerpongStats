@@ -3,7 +3,7 @@
 
   <div class="match-list">
     @for (match of matches(); track match.id) {
-      <app-match-card [match]="match" />
+      <app-match-card [groupId]="group()" [match]="match" />
     }
   </div>
   @if (allMatches.error()) {
@@ -11,6 +11,6 @@
   }
 
   <div style="margin-top: 25px;">
-    <a routerLink="/" class="btn-primary">Back to Home</a>
+    <a [routerLink]="['/g', group()]" class="btn-primary">Back to Home</a>
   </div>
 </section>

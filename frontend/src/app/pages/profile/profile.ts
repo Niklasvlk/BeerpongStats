@@ -1,21 +1,23 @@
 import { DecimalPipe, PercentPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthApi } from '../../api/auth-api';
-import { PlayerApi } from '../../api/player-api';
+import { GroupApi } from '../../api/group-api';
 import { errorMessage } from '../../shared/error-message';
+import { winRateColor } from '../../shared/win-rate-color';
 
 @Component({
   selector: 'app-profile',
-  imports: [PercentPipe, DecimalPipe],
+  imports: [RouterLink, PercentPipe, DecimalPipe],
   templateUrl: './profile.html',
 })
 export class Profile {
   private readonly auth = inject(AuthApi);
-  private readonly players = inject(PlayerApi);
   private readonly router = inject(Router);
 
-  protected readonly player = this.auth.currentUser;
+  protected readonly user = this.auth.currentUser;
+  protected readonly groups = inject(GroupApi).groups;
+  protected readonly winRateColor = winRateColor;
   protected readonly error = signal<string | null>(null);
 
   constructor() {
@@ -27,17 +29,15 @@ export class Profile {
     this.auth.logout().subscribe(() => this.router.navigateByUrl('/'));
   }
 
-  protected deleteProfile(): void {
-    const player = this.player();
-    if (!player || !confirm('Willst du dein Profil wirklich löschen?')) return;
+  protected deleteAccount(): void {
+    const confirmed = confirm(
+      'Willst du deinen Account wirklich löschen? Deine Spieler bleiben mit ihren Matches in den Gruppen erhalten, ' +
+        'Gruppen ohne weitere Mitglieder werden gelöscht.',
+    );
+    if (!confirmed) return;
 
-    this.players.delete(player.id).subscribe({
-      // Das Backend beendet die Session beim Löschen selbst und entfernt dabei das CSRF-Cookie,
-      // ein zusätzliches POST /logout wäre ohne Token ein 403
-      next: () => {
-        this.auth.forgetUser();
-        this.router.navigateByUrl('/');
-      },
+    this.auth.deleteAccount().subscribe({
+      next: () => this.router.navigateByUrl('/'),
       error: (err) => this.error.set(errorMessage(err)),
     });
   }

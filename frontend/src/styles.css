@@ -27,6 +27,8 @@ body {
 .nav-logo {
     font-weight: 700;
     font-size: 20px;
+    color: inherit;
+    text-decoration: none;
 }
 
 /* Hamburger */
@@ -74,6 +76,11 @@ body {
 
 h2 {
     margin-bottom: 20px;
+}
+
+/* Abschnitte einer Seite (z. B. Gruppenliste und "Create a Group") */
+section + section {
+    margin-top: 32px;
 }
 
 /* CARDS */
@@ -423,6 +430,11 @@ h2 {
         width: 100%;
         text-align: left;
     }
+
+    .group-select {
+        width: 100%;
+        max-width: none;
+    }
 }
 
 @media (max-width: 600px) {
@@ -453,4 +465,69 @@ h2 {
     .player-details-card {
         gap: 4px;
     }
+}
+/* GRUPPEN */
+.group-select {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    max-width: 200px;
+}
+
+.badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.muted {
+    color: #64748b;
+}
+
+.auth-hint {
+    margin-top: 16px;
+    font-size: 14px;
+}
+
+.auth-hint a {
+    color: #2563eb;
+}
+
+.landing {
+    max-width: 560px;
+}
+
+.landing p {
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.landing-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.landing-actions a {
+    text-decoration: none;
+}
+
+.player-details-card h3 {
+    margin: 18px 0 10px;
+    font-size: 16px;
+}
+
+.btn-primary + .btn-danger {
+    margin-left: 8px;
 }

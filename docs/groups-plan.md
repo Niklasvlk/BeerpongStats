@@ -214,6 +214,13 @@ Jede Etappe endet in einem lauffähigen, getesteten Stand (`./gradlew test`, `np
 - Reihenfolge: Auth-Seiten und Guards, Gruppenliste/-erstellung, Umstellung der bestehenden Seiten auf `/g/:groupId`, Navbar-Wechsler, `/join/:token`, Settings-Seite, Profil.
 - Fertig, wenn: kompletter Ablauf im Browser funktioniert: registrieren, Gruppe anlegen, Link kopieren, mit zweitem Account beitreten, Match eintragen, Leaderboard sehen.
 
+**Stand Etappe 4a (umgesetzt):** Das Frontend läuft wieder mit Gruppen. Routen: `/` (Startseite, leitet Angemeldete in ihre Gruppe), `/login`, `/register`, `/groups`, `/g/:groupId` mit Home, Spielern, Matches und "New Match", `/profile`. Details:
+- `GroupApi` hält die Gruppen des Benutzers und die zuletzt geöffnete Gruppe (localStorage); `AuthApi` lädt sie nach Login und Session-Wiederherstellung.
+- `groupGuard` lässt nur Mitglieder in `/g/:groupId` und lädt bei einer unbekannten Gruppe die Liste einmal neu (z. B. nach einem Beitritt in einem anderen Tab).
+- Nach dem Login geht es per `?returnUrl=` zurück zur ursprünglichen Seite (nur Pfade innerhalb der App sind erlaubt). Das braucht Etappe 4b für Einladungslinks.
+- "New Match" schlägt die Spieler der Gruppe als Namen vor.
+- **Etappe 4b (offen):** `/join/:token`, Einladungen verwalten, Settings-Seite mit Mitgliedern, Rollen, Entfernen, Umbenennen, Löschen und Verlassen.
+
 **Etappe 5: Absicherung und Rollout**
 - Rate Limiting auf Login, Registrierung und `accept` (z. B. Bucket4j oder ein einfacher IP-basierter Filter), Passwort-Mindestlänge von 4 auf 8, Username-Regeln (Länge, erlaubte Zeichen).
 - Impressum und Datenschutzerklärung als statische Seiten, README und Docker-Hinweise aktualisieren.

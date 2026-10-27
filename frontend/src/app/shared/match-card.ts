@@ -7,7 +7,7 @@ import { Match } from '../api/models';
   selector: 'app-match-card',
   imports: [RouterLink, DatePipe],
   template: `
-    <a class="match-card" [routerLink]="['/matches', match().id]">
+    <a class="match-card" [routerLink]="['/g', groupId(), 'matches', match().id]">
       <div class="match-date">{{ (match().playedAt | date: 'dd.MM.yyyy HH:mm') ?? 'kein Datum' }}</div>
       <div class="match-teams">
         <div class="team winners">
@@ -28,5 +28,6 @@ import { Match } from '../api/models';
   `,
 })
 export class MatchCard {
+  readonly groupId = input.required<number>();
   readonly match = input.required<Match>();
 }

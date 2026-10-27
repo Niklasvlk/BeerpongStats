@@ -37,6 +37,6 @@
   }
 
   <div style="margin-top: 20px;">
-    <a routerLink="/matches" class="btn-primary">Back to Matches</a>
+    <a [routerLink]="['/g', group(), 'matches']" class="btn-primary">Back to Matches</a>
   </div>
 </section>

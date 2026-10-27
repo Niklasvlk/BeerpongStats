@@ -2,7 +2,7 @@
   <h2>Leaderboard</h2>
   <div class="card-grid">
     @for (player of players(); track player.id) {
-      <a class="card card-link" [routerLink]="['/players', player.id]">
+      <a class="card card-link" [routerLink]="['/g', group(), 'players', player.id]">
         <div class="card-title">{{ player.name }}</div>
         <div class="card-stat">
           Win Rate:
@@ -20,7 +20,7 @@
   <h2>Recent Matches</h2>
   <div class="match-list">
     @for (match of matches(); track match.id) {
-      <app-match-card [match]="match" />
+      <app-match-card [groupId]="group()" [match]="match" />
     }
   </div>
   @if (recentMatches.error()) {

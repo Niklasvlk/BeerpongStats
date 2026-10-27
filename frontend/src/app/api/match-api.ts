@@ -3,23 +3,24 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CreateMatchRequest, Match } from './models';
 
+// Alle Matches gehören zu einer Gruppe
 @Injectable({ providedIn: 'root' })
 export class MatchApi {
   private readonly http = inject(HttpClient);
 
-  list(): Observable<Match[]> {
-    return this.http.get<Match[]>('/api/matches');
+  list(groupId: number): Observable<Match[]> {
+    return this.http.get<Match[]>(`/api/groups/${groupId}/matches`);
   }
 
-  recent(): Observable<Match[]> {
-    return this.http.get<Match[]>('/api/matches/recent');
+  recent(groupId: number): Observable<Match[]> {
+    return this.http.get<Match[]>(`/api/groups/${groupId}/matches/recent`);
   }
 
-  get(id: number): Observable<Match> {
-    return this.http.get<Match>(`/api/matches/${id}`);
+  get(groupId: number, id: number): Observable<Match> {
+    return this.http.get<Match>(`/api/groups/${groupId}/matches/${id}`);
   }
 
-  create(request: CreateMatchRequest): Observable<Match> {
-    return this.http.post<Match>('/api/matches', request);
+  create(groupId: number, request: CreateMatchRequest): Observable<Match> {
+    return this.http.post<Match>(`/api/groups/${groupId}/matches`, request);
   }
 }

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatchApi } from '../../api/match-api';
@@ -13,6 +13,13 @@ import { listValue } from '../../shared/list-value';
 export class MatchList {
   private readonly api = inject(MatchApi);
 
-  protected readonly allMatches = rxResource({ stream: () => this.api.list() });
+  // Route-Parameter :groupId der Eltern-Route
+  readonly groupId = input.required<string>();
+  protected readonly group = computed(() => Number(this.groupId()));
+
+  protected readonly allMatches = rxResource({
+    params: () => this.group(),
+    stream: ({ params }) => this.api.list(params),
+  });
   protected readonly matches = listValue(this.allMatches);
 }

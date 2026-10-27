@@ -3,16 +3,21 @@
 
   <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
     <div class="form-row">
-      <input type="text" formControlName="name" placeholder="Name" />
+      <input type="text" formControlName="username" placeholder="Benutzername" autocomplete="username" />
     </div>
     <div class="form-row">
-      <input type="password" formControlName="password" placeholder="Passwort" />
+      <input type="password" formControlName="password" placeholder="Passwort" autocomplete="current-password" />
     </div>
     <div class="form-row">
-      <button type="submit" class="btn-primary" [disabled]="form.invalid">Login</button>
+      <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">Login</button>
     </div>
     @if (error(); as message) {
       <p class="error-text">{{ message }}</p>
     }
   </form>
+
+  <p class="muted auth-hint">
+    Noch keinen Account?
+    <a routerLink="/register" [queryParams]="{ returnUrl: returnUrl() }">Jetzt registrieren</a>
+  </p>
 </section>
