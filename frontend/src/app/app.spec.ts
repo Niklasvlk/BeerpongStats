@@ -77,7 +77,7 @@ describe('App', () => {
     const select = root(fixture).querySelector<HTMLSelectElement>('.group-select')!;
     expect(Array.from(select.options).map((o) => o.textContent?.trim())).toEqual(['Kumpels', 'Uni']);
     expect(select.value).toBe('8');
-    for (const path of ['newMatch', 'players', 'matches']) {
+    for (const path of ['newMatch', 'players', 'matches', 'settings']) {
       expect(root(fixture).querySelector(`nav a[href="/g/8/${path}"]`)).not.toBeNull();
     }
 

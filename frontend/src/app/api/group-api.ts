@@ -24,6 +24,31 @@ export class GroupApi {
     return this.http.post<Group>('/api/groups', request).pipe(tap((group) => this.list.update((all) => [...all, group])));
   }
 
+  // Tritt über einen Einladungslink bei; die Gruppe ist danach geöffnet
+  join(token: string, displayName?: string): Observable<Group> {
+    return this.http.post<Group>(`/api/invitations/${token}/accept`, { displayName }).pipe(
+      tap((group) => {
+        this.list.update((all) => [...all.filter((g) => g.id !== group.id), group]);
+        this.open(group.id);
+      }),
+    );
+  }
+
+  rename(groupId: number, name: string): Observable<Group> {
+    return this.http
+      .patch<Group>(`/api/groups/${groupId}`, { name })
+      .pipe(tap((group) => this.list.update((all) => all.map((g) => (g.id === group.id ? group : g)))));
+  }
+
+  // Löscht die Gruppe samt Matches, Spielern und Einladungen
+  delete(groupId: number): Observable<void> {
+    return this.http.delete<void>(`/api/groups/${groupId}`).pipe(tap(() => this.forget(groupId)));
+  }
+
+  leave(groupId: number): Observable<void> {
+    return this.http.delete<void>(`/api/groups/${groupId}/members/me`).pipe(tap(() => this.forget(groupId)));
+  }
+
   // Merkt sich die geöffnete Gruppe für die Navigation und für den nächsten Besuch
   open(groupId: number): void {
     this.currentId.set(groupId);
@@ -41,6 +66,10 @@ export class GroupApi {
 
   lastOpenedId(): number | null {
     return this.currentId();
+  }
+
+  private forget(groupId: number): void {
+    this.list.update((all) => all.filter((group) => group.id !== groupId));
   }
 }
 

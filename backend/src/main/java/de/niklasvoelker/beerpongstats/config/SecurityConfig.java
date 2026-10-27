@@ -39,8 +39,16 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
+    // Als Bean, weil auch der AuthApiController es braucht: Beim Beenden einer Session löscht Spring Security das
+    // CSRF-Cookie, und er stellt danach ein neues aus
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public CookieCsrfTokenRepository csrfTokenRepository() {
+        return CookieCsrfTokenRepository.withHttpOnlyFalse();
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CookieCsrfTokenRepository csrfTokenRepository)
+            throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         // Logout ohne Session ist harmlos, ein 401 würde nur das Frontend stören
@@ -52,7 +60,7 @@ public class SecurityConfig {
                         // Alles außerhalb von /api sind die statischen Dateien des Frontends
                         .anyRequest().permitAll())
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));

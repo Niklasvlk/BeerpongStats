@@ -1,0 +1,70 @@
+<section>
+  <h2>Invitations</h2>
+
+  <form class="form-card" [formGroup]="form" (ngSubmit)="create()">
+    <div class="form-row form-row-labeled">
+      <label>
+        Gültig für
+        <select formControlName="expiresInDays">
+          @for (days of validDays; track days) {
+            <option [ngValue]="days">{{ days === 1 ? '1 Tag' : days + ' Tage' }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Höchstens so oft nutzbar
+        <input type="number" formControlName="maxUses" min="1" max="100" placeholder="unbegrenzt" />
+      </label>
+    </div>
+    <div class="form-row">
+      <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">Create Invitation Link</button>
+    </div>
+  </form>
+
+  @if (created(); as invitation) {
+    <div class="form-card invite-link">
+      <p>
+        <strong>Dein Link:</strong> Er wird nur jetzt angezeigt. Später siehst du hier nur noch, wie oft er genutzt wurde.
+      </p>
+      <div class="form-row">
+        <input type="text" readonly [value]="link(invitation.token)" (focus)="$any($event.target).select()" />
+        <button type="button" class="btn-secondary" (click)="copy(invitation.token)">Kopieren</button>
+      </div>
+      @if (copyHint(); as hint) {
+        <p class="muted">{{ hint }}</p>
+      }
+    </div>
+  }
+
+  @if (error(); as message) {
+    <p class="error-text">{{ message }}</p>
+  }
+
+  <div class="member-list">
+    @for (invitation of list(); track invitation.id) {
+      <div class="member-row">
+        <div>
+          <div class="player-name">
+            Link vom {{ invitation.createdAt | date: 'dd.MM.yyyy HH:mm' }}
+            <span class="badge" [class.badge-muted]="invitation.status !== 'ACTIVE'">{{ statusLabel(invitation) }}</span>
+          </div>
+          <div class="player-stats">
+            <span>
+              {{ invitation.uses }}{{ invitation.maxUses !== null ? ' von ' + invitation.maxUses : '' }}
+              {{ invitation.uses === 1 && invitation.maxUses === null ? 'Nutzung' : 'Nutzungen' }}
+            </span>
+            <span>gültig bis {{ invitation.expiresAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+          </div>
+        </div>
+        @if (invitation.status === 'ACTIVE') {
+          <div class="row-actions">
+            <button type="button" class="btn-danger btn-small" (click)="revoke(invitation)">Widerrufen</button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  @if (invitations.error()) {
+    <p class="error-text">Die Einladungen konnten nicht geladen werden.</p>
+  }
+</section>

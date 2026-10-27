@@ -45,8 +45,8 @@ export class AuthApi {
     return this.http.post<void>('/api/auth/logout', null).pipe(tap(() => this.forgetUser()));
   }
 
-  // Das Backend beendet die Session beim Löschen selbst und entfernt dabei das CSRF-Cookie,
-  // ein zusätzliches POST /logout wäre ohne Token ein 403
+  // Das Backend beendet die Session beim Löschen selbst (und stellt ein neues CSRF-Cookie aus),
+  // ein zusätzliches POST /logout ist deshalb überflüssig
   deleteAccount(): Observable<void> {
     return this.http.delete<void>('/api/auth/me').pipe(tap(() => this.forgetUser()));
   }

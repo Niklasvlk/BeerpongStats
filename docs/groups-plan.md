@@ -219,7 +219,8 @@ Jede Etappe endet in einem lauffähigen, getesteten Stand (`./gradlew test`, `np
 - `groupGuard` lässt nur Mitglieder in `/g/:groupId` und lädt bei einer unbekannten Gruppe die Liste einmal neu (z. B. nach einem Beitritt in einem anderen Tab).
 - Nach dem Login geht es per `?returnUrl=` zurück zur ursprünglichen Seite (nur Pfade innerhalb der App sind erlaubt). Das braucht Etappe 4b für Einladungslinks.
 - "New Match" schlägt die Spieler der Gruppe als Namen vor.
-- **Etappe 4b (offen):** `/join/:token`, Einladungen verwalten, Settings-Seite mit Mitgliedern, Rollen, Entfernen, Umbenennen, Löschen und Verlassen.
+
+**Stand Etappe 4b (umgesetzt):** `/join/:token` (Vorschau ohne Login, Beitreten mit Account, Registrieren/Login führen per `returnUrl` zurück) und `/g/:groupId/settings` mit drei Bereichen: Mitglieder (Rollen ändern, entfernen), Einladungen (nur Admins: erstellen, widerrufen, Link wird nur direkt nach dem Erstellen angezeigt und lässt sich kopieren) und Gruppe (umbenennen, verlassen, löschen). Die Navbar hat einen "Settings"-Link. Ein QR-Code für den Link ist nicht dabei.
 
 **Etappe 5: Absicherung und Rollout**
 - Rate Limiting auf Login, Registrierung und `accept` (z. B. Bucket4j oder ein einfacher IP-basierter Filter), Passwort-Mindestlänge von 4 auf 8, Username-Regeln (Länge, erlaubte Zeichen).

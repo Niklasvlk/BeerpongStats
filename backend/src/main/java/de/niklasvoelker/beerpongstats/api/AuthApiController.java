@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,14 +33,16 @@ public class AuthApiController {
     private final AuthenticationManager authenticationManager;
     private final AppUserRepository userRepository;
     private final UserService userService;
+    private final CsrfTokenRepository csrfTokenRepository;
     private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
     public AuthApiController(AuthenticationManager authenticationManager, AppUserRepository userRepository,
-                             UserService userService) {
+                             UserService userService, CsrfTokenRepository csrfTokenRepository) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.csrfTokenRepository = csrfTokenRepository;
     }
 
     @PostMapping("/register")
@@ -69,8 +72,8 @@ public class AuthApiController {
 
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(HttpServletRequest request) throws ServletException {
-        request.logout();
+    public void logout(HttpServletRequest request, HttpServletResponse response) throws ServletException {
+        endSession(request, response);
     }
 
     @GetMapping("/me")
@@ -81,10 +84,18 @@ public class AuthApiController {
     // Löscht den eigenen Account
     @DeleteMapping("/me")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteMe(Authentication authentication, HttpServletRequest request) throws ServletException {
+    public void deleteMe(Authentication authentication, HttpServletRequest request, HttpServletResponse response)
+            throws ServletException {
         userService.deleteUser(((AppUserDetails) authentication.getPrincipal()).getId());
         // Die Session gehört zum gelöschten Benutzer und darf nicht weiterleben
+        endSession(request, response);
+    }
+
+    // Beim Abmelden löscht Spring Security auch das CSRF-Cookie. Ohne ein neues scheitert die nächste POST-Anfrage, etwa
+    // der Login gleich danach, mit 403.
+    private void endSession(HttpServletRequest request, HttpServletResponse response) throws ServletException {
         request.logout();
+        csrfTokenRepository.saveToken(csrfTokenRepository.generateToken(request), request, response);
     }
 
     private UserResponse currentUser(Authentication authentication) {

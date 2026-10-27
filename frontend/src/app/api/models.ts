@@ -19,6 +19,49 @@ export interface Group {
   memberCount: number;
 }
 
+// Ein Spieler der Gruppe. active = gehört zu einem Account; sonst ein ehemaliges Mitglied
+export interface Member {
+  id: number;
+  name: string;
+  role: Role;
+  active: boolean;
+  wins: number;
+  losses: number;
+  winRate: number;
+  avgCups: number;
+  createdAt: string;
+}
+
+export type InvitationStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'EXHAUSTED';
+
+// Metadaten einer Einladung; der Token steht nur in CreatedInvitation
+export interface Invitation {
+  id: number;
+  createdAt: string;
+  expiresAt: string;
+  maxUses: number | null;
+  uses: number;
+  status: InvitationStatus;
+}
+
+export interface CreatedInvitation {
+  id: number;
+  token: string;
+  expiresAt: string;
+  maxUses: number | null;
+}
+
+export interface CreateInvitationRequest {
+  expiresInDays?: number;
+  maxUses?: number;
+}
+
+// Was man mit dem Link sieht, bevor man beitritt
+export interface InvitationPreview {
+  groupName: string;
+  memberCount: number;
+}
+
 export interface Player {
   id: number;
   name: string;

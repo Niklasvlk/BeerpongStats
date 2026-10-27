@@ -1,0 +1,47 @@
+<section>
+  <h2>Members</h2>
+
+  <div class="member-list">
+    @for (member of list(); track member.id) {
+      <div class="member-row">
+        <div>
+          <div class="player-name">
+            {{ member.name }}
+            @if (member.role === 'ADMIN' && member.active) {
+              <span class="badge">Admin</span>
+            }
+            @if (!member.active) {
+              <span class="badge badge-muted">ehemalig</span>
+            }
+            @if (member.id === myPlayerId()) {
+              <span class="badge badge-muted">Du</span>
+            }
+          </div>
+          <div class="player-stats">
+            <span>Wins: {{ member.wins }}</span>
+            <span>Losses: {{ member.losses }}</span>
+            <span>{{ member.winRate | percent: '1.0-0' }}</span>
+          </div>
+        </div>
+
+        @if (isAdmin() && member.active) {
+          <div class="row-actions">
+            @if (member.role === 'MEMBER') {
+              <button type="button" class="btn-secondary" (click)="setRole(member, 'ADMIN')">Zum Admin machen</button>
+              <button type="button" class="btn-danger btn-small" (click)="remove(member)">Entfernen</button>
+            } @else {
+              <button type="button" class="btn-secondary" (click)="setRole(member, 'MEMBER')">Zum Mitglied machen</button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (members.error()) {
+    <p class="error-text">Die Mitglieder konnten nicht geladen werden.</p>
+  }
+  @if (error(); as message) {
+    <p class="error-text">{{ message }}</p>
+  }
+</section>

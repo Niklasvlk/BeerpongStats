@@ -3,6 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { AuthApi } from './auth-api';
 import { GroupApi } from './group-api';
+import { InvitationApi } from './invitation-api';
+import { MemberApi } from './member-api';
 import { Group } from './models';
 import { MatchApi } from './match-api';
 import { PlayerApi } from './player-api';
@@ -139,6 +141,78 @@ describe('API services', () => {
       expect(api.lastOpenedId()).toBe(7);
     });
 
+    it('join accepts the invitation, adds the group and opens it', () => {
+      const api = TestBed.inject(GroupApi);
+      api.join('abc', 'Maxi').subscribe();
+      const req = http.expectOne('/api/invitations/abc/accept');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ displayName: 'Maxi' });
+      req.flush(group(7));
+
+      expect(api.groups().map((g) => g.id)).toEqual([7]);
+      expect(api.current()?.id).toBe(7);
+    });
+
+    it('join without a display name sends none', () => {
+      TestBed.inject(GroupApi).join('abc').subscribe();
+      const req = http.expectOne('/api/invitations/abc/accept');
+      expect(req.request.body).toEqual({});
+      req.flush(group(7));
+    });
+
+    it('join replaces a group that is already in the list', () => {
+      const api = TestBed.inject(GroupApi);
+      api.load().subscribe();
+      http.expectOne('/api/groups').flush([group(7, 'Alt')]);
+
+      api.join('abc').subscribe();
+      http.expectOne('/api/invitations/abc/accept').flush(group(7, 'Neu'));
+
+      expect(api.groups().map((g) => g.name)).toEqual(['Neu']);
+    });
+
+    it('rename patches the group and updates the list', () => {
+      const api = TestBed.inject(GroupApi);
+      api.load().subscribe();
+      http.expectOne('/api/groups').flush([group(7), group(8, 'Uni')]);
+
+      api.rename(7, 'Neue Crew').subscribe();
+      const req = http.expectOne('/api/groups/7');
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ name: 'Neue Crew' });
+      req.flush(group(7, 'Neue Crew'));
+
+      expect(api.groups().map((g) => g.name)).toEqual(['Neue Crew', 'Uni']);
+    });
+
+    it('delete and leave remove the group from the list', () => {
+      const api = TestBed.inject(GroupApi);
+      api.load().subscribe();
+      http.expectOne('/api/groups').flush([group(7), group(8, 'Uni'), group(9, 'Dritte')]);
+
+      api.delete(7).subscribe();
+      const deletion = http.expectOne('/api/groups/7');
+      expect(deletion.request.method).toBe('DELETE');
+      deletion.flush(null, { status: 204, statusText: 'No Content' });
+      api.leave(8).subscribe();
+      const leaving = http.expectOne('/api/groups/8/members/me');
+      expect(leaving.request.method).toBe('DELETE');
+      leaving.flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(api.groups().map((g) => g.id)).toEqual([9]);
+    });
+
+    it('a refused delete keeps the group', () => {
+      const api = TestBed.inject(GroupApi);
+      api.load().subscribe();
+      http.expectOne('/api/groups').flush([group(7)]);
+
+      api.delete(7).subscribe({ error: () => undefined });
+      http.expectOne('/api/groups/7').flush(null, { status: 403, statusText: 'Forbidden' });
+
+      expect(api.groups()).toHaveLength(1);
+    });
+
     it('clear empties the list but keeps the last opened group for the next login', () => {
       const api = TestBed.inject(GroupApi);
       api.load().subscribe();
@@ -150,6 +224,52 @@ describe('API services', () => {
       expect(api.groups()).toEqual([]);
       expect(api.current()).toBeNull();
       expect(api.lastOpenedId()).toBe(7);
+    });
+  });
+
+  describe('MemberApi', () => {
+    it('lists the members of the group', () => {
+      TestBed.inject(MemberApi).list(7).subscribe();
+      http.expectOne('/api/groups/7/members').flush([]);
+    });
+
+    it('changeRole patches the role', () => {
+      TestBed.inject(MemberApi).changeRole(7, 2, 'ADMIN').subscribe();
+      const req = http.expectOne('/api/groups/7/members/2');
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ role: 'ADMIN' });
+      req.flush({});
+    });
+
+    it('remove deletes the member', () => {
+      TestBed.inject(MemberApi).remove(7, 2).subscribe();
+      const req = http.expectOne('/api/groups/7/members/2');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null, { status: 204, statusText: 'No Content' });
+    });
+  });
+
+  describe('InvitationApi', () => {
+    it('preview asks for the invitation by its token', () => {
+      TestBed.inject(InvitationApi).preview('abc').subscribe();
+      const req = http.expectOne('/api/invitations/abc');
+      expect(req.request.method).toBe('GET');
+      req.flush({ groupName: 'Kumpels', memberCount: 3 });
+    });
+
+    it('list, create and revoke work on the group', () => {
+      const api = TestBed.inject(InvitationApi);
+      api.list(7).subscribe();
+      http.expectOne('/api/groups/7/invitations').flush([]);
+
+      api.create(7, { expiresInDays: 3, maxUses: 5 }).subscribe();
+      const created = http.expectOne({ method: 'POST', url: '/api/groups/7/invitations' });
+      expect(created.request.body).toEqual({ expiresInDays: 3, maxUses: 5 });
+      created.flush({ id: 1, token: 't', expiresAt: '2026-01-01T12:00:00Z', maxUses: 5 });
+
+      api.revoke(7, 1).subscribe();
+      const revoked = http.expectOne({ method: 'DELETE', url: '/api/groups/7/invitations/1' });
+      revoked.flush(null, { status: 204, statusText: 'No Content' });
     });
   });
 

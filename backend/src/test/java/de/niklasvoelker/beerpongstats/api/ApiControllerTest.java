@@ -27,11 +27,14 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -426,5 +429,38 @@ class ApiControllerTest {
 
         verify(userService).deleteUser(1L);
         assertTrue(session.isInvalid());
+    }
+
+    // Beim Beenden einer Session löscht Spring Security das CSRF-Cookie. Die Antwort muss ein neues mitbringen, sonst
+    // scheitert der nächste POST (z. B. der Login gleich nach dem Abmelden) mit 403.
+    private void assertFreshCsrfCookie(MvcResult result) {
+        String cookie = result.getResponse().getHeaders("Set-Cookie").stream()
+                .filter(header -> header.startsWith("XSRF-TOKEN="))
+                .reduce((first, last) -> last)
+                .orElse(null);
+
+        assertNotNull(cookie, "kein XSRF-TOKEN-Cookie in der Antwort");
+        assertFalse(cookie.startsWith("XSRF-TOKEN=;"), "das letzte XSRF-TOKEN-Cookie ist leer: " + cookie);
+        assertFalse(cookie.contains("Max-Age=0"), "das letzte XSRF-TOKEN-Cookie ist abgelaufen: " + cookie);
+    }
+
+    @Test
+    void logout_shouldLeaveAFreshCsrfCookieBehind() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+
+        MvcResult result = mockMvc.perform(post("/api/auth/logout").with(csrf()).session(session).with(user(principal())))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        assertFreshCsrfCookie(result);
+    }
+
+    @Test
+    void deleteMe_shouldLeaveAFreshCsrfCookieBehind() throws Exception {
+        MvcResult result = mockMvc.perform(delete("/api/auth/me").with(csrf()).session(new MockHttpSession()).with(user(principal())))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        assertFreshCsrfCookie(result);
     }
 }

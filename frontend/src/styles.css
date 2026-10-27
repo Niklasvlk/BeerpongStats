@@ -531,3 +531,92 @@ section + section {
 .btn-primary + .btn-danger {
     margin-left: 8px;
 }
+
+/* EINLADUNGEN UND MITGLIEDER */
+.settings-title {
+    margin-bottom: 24px;
+}
+
+/* Die Abschnitte der Settings-Seite sind eigene Komponenten und damit keine direkten section-Geschwister */
+app-members-section,
+app-invitations-section,
+app-group-section {
+    display: block;
+}
+
+app-invitations-section,
+app-group-section {
+    margin-top: 32px;
+}
+
+.member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.member-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: white;
+    padding: 14px 18px;
+    border-radius: 14px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+.row-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.badge-muted {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+button.btn-secondary {
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+}
+
+.btn-small {
+    padding: 6px 10px;
+    font-size: 14px;
+}
+
+.form-row-labeled label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14px;
+    color: #334155;
+    min-width: 180px;
+}
+
+.form-row-labeled select,
+.form-row-labeled input {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+}
+
+.invite-link {
+    margin-top: 16px;
+}
+
+.invite-link .form-row input {
+    min-width: 0;
+}
+
+.invite-link .form-row .btn-secondary {
+    padding: 10px 14px;
+}
