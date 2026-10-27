@@ -3,6 +3,9 @@ package de.niklasvoelker.beerpongstats.repository;
 import de.niklasvoelker.beerpongstats.model.Match;
 import de.niklasvoelker.beerpongstats.model.Player;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -30,4 +33,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             Integer loser2Cups,
             LocalDateTime time
     );
+
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM Match m WHERE m.group.id = :groupId")
+    void deleteAllOfGroup(@Param("groupId") Long groupId);
 }

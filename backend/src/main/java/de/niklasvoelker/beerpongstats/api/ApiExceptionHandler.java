@@ -26,9 +26,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler({UserAlreadyExistsException.class, DuplicateMatchException.class,
-            InvalidUserDataException.class})
+            InvalidUserDataException.class, GroupConflictException.class})
     public ProblemDetail handleConflict(RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(NotGroupAdminException.class)
+    public ProblemDetail handleNotAdmin(NotGroupAdminException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvitationInvalidException.class)
+    public ProblemDetail handleInvalidInvitation(InvitationInvalidException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.GONE, ex.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

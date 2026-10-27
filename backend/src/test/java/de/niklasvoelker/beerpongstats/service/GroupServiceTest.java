@@ -1,6 +1,10 @@
 package de.niklasvoelker.beerpongstats.service;
 
+import de.niklasvoelker.beerpongstats.config.GroupAccess;
+import de.niklasvoelker.beerpongstats.exception.GroupConflictException;
 import de.niklasvoelker.beerpongstats.exception.GroupNotFoundException;
+import de.niklasvoelker.beerpongstats.exception.NotGroupAdminException;
+import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByIDException;
 import de.niklasvoelker.beerpongstats.exception.UnknownUserException;
 import de.niklasvoelker.beerpongstats.model.AppUser;
 import de.niklasvoelker.beerpongstats.model.Player;
@@ -8,15 +12,20 @@ import de.niklasvoelker.beerpongstats.model.PongGroup;
 import de.niklasvoelker.beerpongstats.model.Role;
 import de.niklasvoelker.beerpongstats.repository.AppUserRepository;
 import de.niklasvoelker.beerpongstats.repository.GroupRepository;
+import de.niklasvoelker.beerpongstats.repository.InvitationRepository;
+import de.niklasvoelker.beerpongstats.repository.MatchRepository;
 import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
 import de.niklasvoelker.beerpongstats.service.GroupService.GroupMembership;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +45,15 @@ class GroupServiceTest {
 
     @Mock
     private AppUserRepository userRepository;
+
+    @Mock
+    private MatchRepository matchRepository;
+
+    @Mock
+    private InvitationRepository invitationRepository;
+
+    @Mock
+    private GroupAccess groupAccess;
 
     @InjectMocks
     private GroupService groupService;
@@ -145,8 +163,8 @@ class GroupServiceTest {
         Player inKumpels = Player.builder().id(20L).group(kumpels).role(Role.ADMIN).build();
         Player inUni = Player.builder().id(21L).group(uni).role(Role.MEMBER).build();
         when(playerRepository.findMemberships(1L)).thenReturn(List.of(inKumpels, inUni));
-        when(playerRepository.countByGroupId(10L)).thenReturn(3L);
-        when(playerRepository.countByGroupId(11L)).thenReturn(8L);
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(3L);
+        when(playerRepository.countByGroupIdAndUserIsNotNull(11L)).thenReturn(8L);
 
         List<GroupMembership> result = groupService.getMyGroups(1L);
 
@@ -163,7 +181,7 @@ class GroupServiceTest {
         Player me = Player.builder().id(20L).role(Role.MEMBER).build();
         when(playerRepository.findByGroupIdAndUserId(10L, 1L)).thenReturn(Optional.of(me));
         when(groupRepository.findById(10L)).thenReturn(Optional.of(kumpels));
-        when(playerRepository.countByGroupId(10L)).thenReturn(4L);
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(4L);
 
         GroupMembership result = groupService.getGroup(10L, 1L);
 
@@ -179,5 +197,193 @@ class GroupServiceTest {
         assertThrows(GroupNotFoundException.class, () -> groupService.getGroup(10L, 1L));
 
         verify(groupRepository, never()).findById(any());
+    }
+
+    // --- Mitglieder und Rollen ---
+
+    private PongGroup group(Long id) {
+        return PongGroup.builder().id(id).name("Kumpels").build();
+    }
+
+    private Player member(Long id, PongGroup group, Role role, AppUser user) {
+        return Player.builder().id(id).group(group).role(role).user(user).name("P" + id).build();
+    }
+
+    @Test
+    void getPlayers_shouldListEveryPlayerOfTheGroupSortedByName() {
+        Player anna = member(1L, group(10L), Role.MEMBER, null);
+        when(playerRepository.findByGroupId(10L, Sort.by(Sort.Direction.ASC, "name"))).thenReturn(List.of(anna));
+
+        assertEquals(List.of(anna), groupService.getPlayers(10L));
+    }
+
+    @Test
+    void changeRole_shouldPromoteAMember() {
+        PongGroup g = group(10L);
+        Player target = member(21L, g, Role.MEMBER, max);
+        when(playerRepository.findByIdAndGroupId(21L, 10L)).thenReturn(Optional.of(target));
+
+        Player result = groupService.changeRole(10L, 1L, 21L, Role.ADMIN);
+
+        verify(groupAccess).requireAdmin(10L, 1L);
+        assertEquals(Role.ADMIN, result.getRole());
+    }
+
+    @Test
+    void changeRole_shouldRequireAnAdmin() {
+        doThrow(new NotGroupAdminException()).when(groupAccess).requireAdmin(10L, 1L);
+
+        assertThrows(NotGroupAdminException.class, () -> groupService.changeRole(10L, 1L, 21L, Role.ADMIN));
+
+        verifyNoInteractions(playerRepository);
+    }
+
+    @Test
+    void changeRole_shouldRejectAPlayerOfAnotherGroup() {
+        when(playerRepository.findByIdAndGroupId(21L, 10L)).thenReturn(Optional.empty());
+
+        assertThrows(PlayerNotFoundByIDException.class, () -> groupService.changeRole(10L, 1L, 21L, Role.ADMIN));
+    }
+
+    @Test
+    void changeRole_shouldRejectAPlayerWithoutAccount() {
+        Player former = member(21L, group(10L), Role.MEMBER, null);
+        when(playerRepository.findByIdAndGroupId(21L, 10L)).thenReturn(Optional.of(former));
+
+        assertThrows(GroupConflictException.class, () -> groupService.changeRole(10L, 1L, 21L, Role.ADMIN));
+
+        assertEquals(Role.MEMBER, former.getRole());
+    }
+
+    @Test
+    void changeRole_shouldNotDemoteTheLastAdmin() {
+        Player admin = member(20L, group(10L), Role.ADMIN, max);
+        when(playerRepository.findByIdAndGroupId(20L, 10L)).thenReturn(Optional.of(admin));
+        when(playerRepository.countByGroupIdAndRoleAndUserIsNotNull(10L, Role.ADMIN)).thenReturn(1L);
+
+        assertThrows(GroupConflictException.class, () -> groupService.changeRole(10L, 1L, 20L, Role.MEMBER));
+
+        assertEquals(Role.ADMIN, admin.getRole());
+    }
+
+    @Test
+    void changeRole_shouldDemoteAnAdminWhenAnotherOneRemains() {
+        Player admin = member(20L, group(10L), Role.ADMIN, max);
+        when(playerRepository.findByIdAndGroupId(20L, 10L)).thenReturn(Optional.of(admin));
+        when(playerRepository.countByGroupIdAndRoleAndUserIsNotNull(10L, Role.ADMIN)).thenReturn(2L);
+
+        groupService.changeRole(10L, 1L, 20L, Role.MEMBER);
+
+        assertEquals(Role.MEMBER, admin.getRole());
+    }
+
+    // --- Verlassen ---
+
+    @Test
+    void leaveGroup_shouldKeepThePlayerWithoutAccount() {
+        PongGroup g = group(10L);
+        Player me = member(20L, g, Role.MEMBER, max);
+        when(playerRepository.findByGroupIdAndUserId(10L, 1L)).thenReturn(Optional.of(me));
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(3L);
+
+        groupService.leaveGroup(10L, 1L);
+
+        assertNull(me.getUser());
+        assertEquals(Role.MEMBER, me.getRole());
+        verify(groupRepository, never()).deleteGroup(any());
+    }
+
+    @Test
+    void leaveGroup_shouldResetTheRoleOfAnAdminWhoLeaves() {
+        Player me = member(20L, group(10L), Role.ADMIN, max);
+        when(playerRepository.findByGroupIdAndUserId(10L, 1L)).thenReturn(Optional.of(me));
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(3L);
+        when(playerRepository.countByGroupIdAndRoleAndUserIsNotNull(10L, Role.ADMIN)).thenReturn(2L);
+
+        groupService.leaveGroup(10L, 1L);
+
+        assertNull(me.getUser());
+        assertEquals(Role.MEMBER, me.getRole());
+    }
+
+    @Test
+    void leaveGroup_shouldRefuseTheLastAdminWhileOthersRemain() {
+        Player me = member(20L, group(10L), Role.ADMIN, max);
+        when(playerRepository.findByGroupIdAndUserId(10L, 1L)).thenReturn(Optional.of(me));
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(3L);
+        when(playerRepository.countByGroupIdAndRoleAndUserIsNotNull(10L, Role.ADMIN)).thenReturn(1L);
+
+        GroupConflictException ex = assertThrows(GroupConflictException.class, () -> groupService.leaveGroup(10L, 1L));
+
+        assertTrue(ex.getMessage().contains("Kumpels"));
+        assertSame(max, me.getUser());
+        assertEquals(Role.ADMIN, me.getRole());
+    }
+
+    @Test
+    void leaveGroup_shouldDeleteTheGroupWhenTheLastMemberLeaves() {
+        Player me = member(20L, group(10L), Role.ADMIN, max);
+        when(playerRepository.findByGroupIdAndUserId(10L, 1L)).thenReturn(Optional.of(me));
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(1L);
+
+        groupService.leaveGroup(10L, 1L);
+
+        InOrder order = inOrder(matchRepository, invitationRepository, playerRepository, groupRepository);
+        order.verify(matchRepository).deleteAllOfGroup(10L);
+        order.verify(invitationRepository).deleteAllOfGroup(10L);
+        order.verify(playerRepository).deleteAllOfGroup(10L);
+        order.verify(groupRepository).deleteGroup(10L);
+    }
+
+    @Test
+    void leaveGroup_shouldTreatANonMemberLikeAMissingGroup() {
+        when(playerRepository.findByGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
+
+        assertThrows(GroupNotFoundException.class, () -> groupService.leaveGroup(10L, 1L));
+    }
+
+    // --- Account löschen ---
+
+    @Test
+    void releaseMemberships_shouldDetachSharedGroupsAndDeleteOnesWithoutOtherMembers() {
+        PongGroup shared = group(10L);
+        PongGroup alone = PongGroup.builder().id(11L).name("Allein").build();
+        Player inShared = member(20L, shared, Role.MEMBER, max);
+        Player inAlone = member(21L, alone, Role.ADMIN, max);
+        when(playerRepository.findMemberships(1L)).thenReturn(List.of(inShared, inAlone));
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(4L);
+        when(playerRepository.countByGroupIdAndUserIsNotNull(11L)).thenReturn(1L);
+
+        groupService.releaseMemberships(1L);
+
+        assertNull(inShared.getUser());
+        verify(groupRepository).deleteGroup(11L);
+        verify(groupRepository, never()).deleteGroup(10L);
+    }
+
+    @Test
+    void releaseMemberships_shouldChangeNothingWhenOneGroupBlocksIt() {
+        PongGroup shared = group(10L);
+        PongGroup blocking = PongGroup.builder().id(11L).name("Team").build();
+        Player inShared = member(20L, shared, Role.MEMBER, max);
+        Player inBlocking = member(21L, blocking, Role.ADMIN, max);
+        when(playerRepository.findMemberships(1L)).thenReturn(List.of(inShared, inBlocking));
+        when(playerRepository.countByGroupIdAndUserIsNotNull(11L)).thenReturn(5L);
+        when(playerRepository.countByGroupIdAndRoleAndUserIsNotNull(11L, Role.ADMIN)).thenReturn(1L);
+
+        assertThrows(GroupConflictException.class, () -> groupService.releaseMemberships(1L));
+
+        assertSame(max, inShared.getUser());
+        assertSame(max, inBlocking.getUser());
+        verify(groupRepository, never()).deleteGroup(any());
+    }
+
+    @Test
+    void releaseMemberships_shouldDoNothingForAnAccountWithoutGroups() {
+        when(playerRepository.findMemberships(1L)).thenReturn(List.of());
+
+        groupService.releaseMemberships(1L);
+
+        verify(groupRepository, never()).deleteGroup(any());
     }
 }

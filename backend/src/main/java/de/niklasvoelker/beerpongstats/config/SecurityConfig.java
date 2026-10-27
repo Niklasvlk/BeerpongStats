@@ -46,6 +46,8 @@ public class SecurityConfig {
                         // Logout ohne Session ist harmlos, ein 401 würde nur das Frontend stören
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/logout")
                         .permitAll()
+                        // Die Vorschau zeigt, wozu man eingeladen wurde, bevor man sich anmeldet; Beitreten braucht Login
+                        .requestMatchers(HttpMethod.GET, "/api/invitations/*").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         // Alles außerhalb von /api sind die statischen Dateien des Frontends
                         .anyRequest().permitAll())

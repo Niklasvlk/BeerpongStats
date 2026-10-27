@@ -1,5 +1,6 @@
 package de.niklasvoelker.beerpongstats.service;
 
+import de.niklasvoelker.beerpongstats.exception.GroupConflictException;
 import de.niklasvoelker.beerpongstats.exception.InvalidUserDataException;
 import de.niklasvoelker.beerpongstats.exception.UserAlreadyExistsException;
 import de.niklasvoelker.beerpongstats.model.AppUser;
@@ -7,6 +8,7 @@ import de.niklasvoelker.beerpongstats.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -26,6 +28,9 @@ class UserServiceTest {
 
     @Mock
     private AppUserRepository repository;
+
+    @Mock
+    private GroupService groupService;
 
     @Spy
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -150,9 +155,20 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteUser_shouldDeleteById() {
+    void deleteUser_shouldReleaseTheMembershipsBeforeDeletingTheAccount() {
         userService.deleteUser(1L);
 
-        verify(repository).deleteById(1L);
+        InOrder order = inOrder(groupService, repository);
+        order.verify(groupService).releaseMemberships(1L);
+        order.verify(repository).deleteById(1L);
+    }
+
+    @Test
+    void deleteUser_shouldKeepTheAccountWhenAMembershipCannotBeReleased() {
+        doThrow(new GroupConflictException("letzter Admin")).when(groupService).releaseMemberships(1L);
+
+        assertThrows(GroupConflictException.class, () -> userService.deleteUser(1L));
+
+        verify(repository, never()).deleteById(any());
     }
 }

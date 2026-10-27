@@ -1,9 +1,11 @@
 package de.niklasvoelker.beerpongstats.repository;
 
 import de.niklasvoelker.beerpongstats.model.Player;
+import de.niklasvoelker.beerpongstats.model.Role;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -26,7 +28,12 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
 
     List<Player> findByGroupIdAndNameContainingIgnoreCase(Long groupId, String name);
 
-    long countByGroupId(Long groupId);
+    boolean existsByGroupIdAndNameIgnoreCase(Long groupId, String name);
+
+    // Mitglieder sind die Spieler mit Account; ohne Account sind ehemalige Mitglieder (und später Platzhalter)
+    long countByGroupIdAndUserIsNotNull(Long groupId);
+
+    long countByGroupIdAndRoleAndUserIsNotNull(Long groupId, Role role);
 
     @Query("""
     SELECT p
@@ -45,4 +52,8 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     ORDER BY g.name
 """)
     List<Player> findMemberships(@Param("userId") Long userId);
+
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM Player p WHERE p.group.id = :groupId")
+    void deleteAllOfGroup(@Param("groupId") Long groupId);
 }

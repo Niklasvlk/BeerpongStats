@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -43,22 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Aufbau: Alice ist Admin der Gruppe A (mit Anna und Max), Bob Admin der Gruppe B (mit Ben und ebenfalls einem Max).
  * In jeder Gruppe wurden 10 Matches gespielt. Carol ist in keiner Gruppe.
  */
-class GroupIsolationTest extends PostgresIntegrationTest {
-
-    private static final String PASSWORD = "geheim1234";
-
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private JdbcTemplate jdbc;
-    @Autowired
-    private AppUserRepository userRepository;
-    @Autowired
-    private GroupRepository groupRepository;
-    @Autowired
-    private PlayerRepository playerRepository;
-    @Autowired
-    private MatchRepository matchRepository;
+class GroupIsolationTest extends ApiIntegrationTest {
 
     private MockHttpSession alice;
     private MockHttpSession bob;
@@ -68,14 +54,9 @@ class GroupIsolationTest extends PostgresIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        jdbc.execute("TRUNCATE match, player, pong_group, app_user RESTART IDENTITY CASCADE");
-
-        register("Alice");
-        register("Bob");
-        register("Carol");
-        alice = login("Alice");
-        bob = login("Bob");
-        carol = login("Carol");
+        alice = registerAndLogin("Alice");
+        bob = registerAndLogin("Bob");
+        carol = registerAndLogin("Carol");
 
         groupA = createGroup(alice, "Gruppe A", null);
         groupB = createGroup(bob, "Gruppe B", null);
@@ -89,70 +70,6 @@ class GroupIsolationTest extends PostgresIntegrationTest {
             playMatch(alice, groupA, "Alice", "Anna", cups);
             playMatch(bob, groupB, "Bob", "Ben", cups);
         }
-    }
-
-    // --- Hilfsmethoden ---
-
-    private static String json(String... keyValues) {
-        StringBuilder sb = new StringBuilder("{");
-        for (int i = 0; i < keyValues.length; i += 2) {
-            sb.append(i > 0 ? "," : "").append('"').append(keyValues[i]).append("\":\"").append(keyValues[i + 1]).append('"');
-        }
-        return sb.append('}').toString();
-    }
-
-    private void register(String username) throws Exception {
-        mockMvc.perform(post("/api/auth/register").with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json("username", username, "password", PASSWORD)))
-                .andExpect(status().isCreated());
-    }
-
-    // Echter Login: die Session trägt den Security-Kontext, wie im Browser
-    private MockHttpSession login(String username) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/auth/login").with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json("username", username, "password", PASSWORD)))
-                .andExpect(status().isOk())
-                .andReturn();
-        return (MockHttpSession) result.getRequest().getSession(false);
-    }
-
-    private long createGroup(MockHttpSession session, String name, String displayName) throws Exception {
-        String body = displayName == null ? json("name", name) : json("name", name, "displayName", displayName);
-        MvcResult result = mockMvc.perform(post("/api/groups").with(csrf()).session(session)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
-    }
-
-    // Ein Spieler ohne Account, so wie später Platzhalter oder ehemalige Mitglieder aussehen
-    private void addPlaceholder(long groupId, String name) {
-        playerRepository.save(Player.builder()
-                .group(groupRepository.getReferenceById(groupId))
-                .name(name)
-                .role(Role.MEMBER)
-                .createdAt(LocalDateTime.now())
-                .build());
-    }
-
-    private void playMatch(MockHttpSession session, long groupId, String winner, String loser, int loserCups) throws Exception {
-        mockMvc.perform(post("/api/groups/" + groupId + "/matches").with(csrf()).session(session)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"winner1\":\"" + winner + "\",\"loser1\":\"" + loser
-                                + "\",\"winner1Cups\":10,\"loser1Cups\":" + loserCups + "}"))
-                .andExpect(status().isCreated());
-    }
-
-    private ResultActions getAs(MockHttpSession session, String url) throws Exception {
-        return mockMvc.perform(get(url).session(session));
-    }
-
-    private long idFromList(MockHttpSession session, String url, int index) throws Exception {
-        String body = getAs(session, url).andReturn().getResponse().getContentAsString();
-        return ((Number) JsonPath.read(body, "$[" + index + "].id")).longValue();
     }
 
     // --- Mitglieder sehen nur ihre eigene Gruppe ---
@@ -189,7 +106,8 @@ class GroupIsolationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$[0].name").value("Gruppe A"))
                 .andExpect(jsonPath("$[0].role").value("ADMIN"))
                 .andExpect(jsonPath("$[0].wins").value(10))
-                .andExpect(jsonPath("$[0].memberCount").value(3));
+                // Mitglieder sind Spieler mit Account: Anna und Max zählen nicht mit
+                .andExpect(jsonPath("$[0].memberCount").value(1));
         getAs(bob, "/api/groups").andExpect(jsonPath("$[0].id").value(groupB));
         getAs(carol, "/api/groups").andExpect(status().isOk()).andExpect(jsonPath("$", empty()));
     }
@@ -212,6 +130,12 @@ class GroupIsolationTest extends PostgresIntegrationTest {
             getAs(outsider, a + "/matches").andExpect(status().isNotFound());
             getAs(outsider, a + "/matches/recent").andExpect(status().isNotFound());
             getAs(outsider, a + "/matches/" + matchId).andExpect(status().isNotFound());
+            getAs(outsider, a + "/members").andExpect(status().isNotFound());
+            patchAs(outsider, a + "/members/" + annaId, "{\"role\":\"ADMIN\"}").andExpect(status().isNotFound());
+            deleteAs(outsider, a + "/members/me").andExpect(status().isNotFound());
+            getAs(outsider, a + "/invitations").andExpect(status().isNotFound());
+            postAs(outsider, a + "/invitations", null).andExpect(status().isNotFound());
+            deleteAs(outsider, a + "/invitations/1").andExpect(status().isNotFound());
             mockMvc.perform(post(a + "/matches").with(csrf()).session(outsider)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"winner1\":\"Alice\",\"loser1\":\"Anna\",\"winner1Cups\":10,\"loser1Cups\":3}"))
@@ -357,16 +281,17 @@ class GroupIsolationTest extends PostgresIntegrationTest {
     // --- Account löschen ---
 
     @Test
-    void deletingTheAccountKeepsThePlayersAndMatchesOfItsGroups() throws Exception {
+    void deletingTheAccountOfTheOnlyMemberDeletesTheGroupAndNothingElse() throws Exception {
+        // Alice ist in Gruppe A das einzige Mitglied mit Account (Anna und Max haben keinen)
         mockMvc.perform(delete("/api/auth/me").with(csrf()).session(alice)).andExpect(status().isNoContent());
 
-        List<Player> players = playerRepository.findByGroupId(groupA, Sort.by("name"));
-        assertEquals(List.of("Alice", "Anna", "Max"), players.stream().map(Player::getName).toList());
-        assertNull(players.get(0).getUser());
-        assertEquals(10, matchRepository.findAllByGroupIdOrderByPlayedAtDesc(groupA).size());
         assertEquals(0, userRepository.findByUsernameIgnoreCase("Alice").map(u -> 1).orElse(0));
+        assertFalse(groupRepository.existsById(groupA));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM player WHERE group_id = ?", Integer.class, groupA));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM match WHERE group_id = ?", Integer.class, groupA));
 
         // Die Gruppe von Bob ist unberührt
         getAs(bob, "/api/groups/" + groupB + "/matches").andExpect(jsonPath("$", hasSize(10)));
+        getAs(bob, "/api/groups/" + groupB + "/players").andExpect(jsonPath("$", hasSize(3)));
     }
 }

@@ -7,6 +7,7 @@ import de.niklasvoelker.beerpongstats.repository.AppUserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -18,10 +19,12 @@ public class UserService {
 
     private final AppUserRepository repository;
     private final PasswordEncoder passwordEncoder;
+    private final GroupService groupService;
 
-    public UserService(AppUserRepository repository, PasswordEncoder passwordEncoder) {
+    public UserService(AppUserRepository repository, PasswordEncoder passwordEncoder, GroupService groupService) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        this.groupService = groupService;
     }
 
     public AppUser register(String username, String password) {
@@ -57,8 +60,11 @@ public class UserService {
         }
     }
 
-    // Gibt es den Benutzer nicht mehr, ist nichts zu tun (z. B. zweiter Löschversuch mit alter Session)
+    // Seine Spieler bleiben in den Gruppen (ohne Account), Gruppen ohne weitere Mitglieder verschwinden mit ihm.
+    // Gibt es den Benutzer nicht mehr, ist nichts zu tun (z. B. zweiter Löschversuch mit alter Session).
+    @Transactional
     public void deleteUser(Long id) {
+        groupService.releaseMemberships(id);
         repository.deleteById(id);
     }
 }

@@ -1,7 +1,9 @@
 package de.niklasvoelker.beerpongstats.config;
 
 import de.niklasvoelker.beerpongstats.exception.GroupNotFoundException;
+import de.niklasvoelker.beerpongstats.exception.NotGroupAdminException;
 import de.niklasvoelker.beerpongstats.model.Player;
+import de.niklasvoelker.beerpongstats.model.Role;
 import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
 import org.springframework.stereotype.Component;
 
@@ -21,5 +23,14 @@ public class GroupAccess {
     public Player requireMember(Long groupId, Long userId) {
         return playerRepository.findByGroupIdAndUserId(groupId, userId)
                 .orElseThrow(GroupNotFoundException::new);
+    }
+
+    // Admin-Endpoints rufen das zusätzlich zur Mitgliedschaftsprüfung des Interceptors auf
+    public Player requireAdmin(Long groupId, Long userId) {
+        Player member = requireMember(groupId, userId);
+        if (member.getRole() != Role.ADMIN) {
+            throw new NotGroupAdminException();
+        }
+        return member;
     }
 }
