@@ -2,8 +2,10 @@ package de.niklasvoelker.beerpongstats.api;
 
 import de.niklasvoelker.beerpongstats.api.dto.CreateGroupRequest;
 import de.niklasvoelker.beerpongstats.api.dto.GroupResponse;
+import de.niklasvoelker.beerpongstats.api.dto.RenameGroupRequest;
 import de.niklasvoelker.beerpongstats.config.AppUserDetails;
 import de.niklasvoelker.beerpongstats.service.GroupService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -37,5 +39,19 @@ public class GroupApiController {
     @GetMapping("/{groupId}")
     public GroupResponse getGroup(@PathVariable Long groupId, @AuthenticationPrincipal AppUserDetails user) {
         return GroupResponse.from(groupService.getGroup(groupId, user.getId()));
+    }
+
+    // Nur Admins
+    @PatchMapping("/{groupId}")
+    public GroupResponse rename(@PathVariable Long groupId, @RequestBody RenameGroupRequest request,
+                                @AuthenticationPrincipal AppUserDetails user) {
+        return GroupResponse.from(groupService.renameGroup(groupId, user.getId(), request.name()));
+    }
+
+    // Nur Admins; löscht die Gruppe samt Matches, Spielern und Einladungen
+    @DeleteMapping("/{groupId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long groupId, @AuthenticationPrincipal AppUserDetails user) {
+        groupService.deleteGroup(groupId, user.getId());
     }
 }

@@ -203,7 +203,12 @@ Jede Etappe endet in einem lauffähigen, getesteten Stand (`./gradlew test`, `np
 - `memberCount` zählt nur Spieler mit Account. Wer geht, bleibt als Spieler ohne Account in der Gruppe stehen.
 - Verlässt das letzte Mitglied die Gruppe oder löscht seinen Account, wird die Gruppe samt Matches, Spielern und Einladungen gelöscht (intern, noch ohne eigenen Endpoint).
 - Wer zurückkommt, bekommt einen neuen Spieler und braucht einen freien Namen.
-- **Etappe 3b (offen):** Mitglieder entfernen, Gruppe umbenennen/löschen per Endpoint, Limits pro Account und Gruppe.
+
+**Stand Etappe 3b (umgesetzt):** `DELETE /members/{playerId}` (Mitglied entfernen), `PATCH /api/groups/{gid}` (umbenennen), `DELETE /api/groups/{gid}` (löschen) und die Limits. Entscheidungen dazu:
+- Ein Admin kann andere Admins nicht direkt entfernen und sich selbst nicht über diesen Endpoint. Erst herabstufen, zum Verlassen gibt es `members/me`.
+- Wer entfernt wurde, kann mit einem noch gültigen Link wieder beitreten (mit neuem Namen).
+- Limits stehen in `application.properties` (`beerpong.limits.max-groups-per-user=20`, `beerpong.limits.max-members-per-group=100`). Das Beitreten zählt gegen beide.
+- Beitritte sperren die Gruppenzeile (`SELECT ... FOR UPDATE`), damit parallele Beitritte die Mitgliederobergrenze nicht überschreiten.
 
 **Etappe 4: Frontend (kann nach Etappe 2 beginnen, sobald die API-Verträge stehen)**
 - Reihenfolge: Auth-Seiten und Guards, Gruppenliste/-erstellung, Umstellung der bestehenden Seiten auf `/g/:groupId`, Navbar-Wechsler, `/join/:token`, Settings-Seite, Profil.

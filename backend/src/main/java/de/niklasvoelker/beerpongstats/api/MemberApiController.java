@@ -34,6 +34,14 @@ public class MemberApiController {
         return MemberResponse.from(groupService.changeRole(groupId, user.getId(), playerId, request.role()));
     }
 
+    // Nur Admins
+    @DeleteMapping("/{playerId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void remove(@PathVariable Long groupId, @PathVariable Long playerId,
+                       @AuthenticationPrincipal AppUserDetails user) {
+        groupService.removeMember(groupId, user.getId(), playerId);
+    }
+
     @DeleteMapping("/me")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void leave(@PathVariable Long groupId, @AuthenticationPrincipal AppUserDetails user) {

@@ -1,6 +1,7 @@
 package de.niklasvoelker.beerpongstats.service;
 
 import de.niklasvoelker.beerpongstats.config.GroupAccess;
+import de.niklasvoelker.beerpongstats.config.GroupLimits;
 import de.niklasvoelker.beerpongstats.exception.GroupConflictException;
 import de.niklasvoelker.beerpongstats.exception.GroupNotFoundException;
 import de.niklasvoelker.beerpongstats.exception.InvitationInvalidException;
@@ -53,15 +54,17 @@ public class InvitationService {
     private final PlayerRepository playerRepository;
     private final AppUserRepository userRepository;
     private final GroupAccess groupAccess;
+    private final GroupLimits limits;
 
     public InvitationService(InvitationRepository invitationRepository, GroupRepository groupRepository,
                              PlayerRepository playerRepository, AppUserRepository userRepository,
-                             GroupAccess groupAccess) {
+                             GroupAccess groupAccess, GroupLimits limits) {
         this.invitationRepository = invitationRepository;
         this.groupRepository = groupRepository;
         this.playerRepository = playerRepository;
         this.userRepository = userRepository;
         this.groupAccess = groupAccess;
+        this.limits = limits;
     }
 
     @Transactional
@@ -116,14 +119,16 @@ public class InvitationService {
     }
 
     /**
-     * Der Benutzer tritt der Gruppe bei. Die Nutzung wird atomar vergeben; schlägt danach noch etwas fehl, wird sie
-     * mit der Transaktion zurückgenommen.
+     * Der Benutzer tritt der Gruppe bei. Die Gruppe wird dafür gesperrt, gleichzeitige Beitritte laufen also nacheinander
+     * und können die Obergrenze nicht überschreiten. Die Nutzung der Einladung wird atomar vergeben; schlägt danach noch
+     * etwas fehl, wird sie mit der Transaktion zurückgenommen.
      */
     @Transactional
     public GroupMembership accept(String token, Long userId, String displayName) {
         Invitation invitation = findUsable(token);
         AppUser user = userRepository.findById(userId).orElseThrow(UnknownUserException::new);
         Long groupId = invitation.getGroup().getId();
+        PongGroup group = groupRepository.findForUpdate(groupId).orElseThrow(InvitationInvalidException::new);
 
         if (playerRepository.findByGroupIdAndUserId(groupId, userId).isPresent()) {
             throw new GroupConflictException("Du bist bereits Mitglied dieser Gruppe.");
@@ -133,18 +138,21 @@ public class InvitationService {
             throw new GroupConflictException(
                     "Der Name '" + name + "' ist in dieser Gruppe schon vergeben. Wähle einen anderen.");
         }
+        if (playerRepository.countByGroupIdAndUserIsNotNull(groupId) >= limits.maxMembersPerGroup()) {
+            throw new GroupConflictException("Die Gruppe ist voll.");
+        }
+        GroupService.requireRoomForAnotherGroup(playerRepository, limits, userId);
 
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         if (invitationRepository.consumeUse(invitation.getId(), now) == 0) {
             throw new InvitationInvalidException();
         }
 
-        PongGroup group = groupRepository.findById(groupId).orElseThrow(InvitationInvalidException::new);
         Player player;
         try {
             player = playerRepository.saveAndFlush(GroupService.newMember(group, user, name, Role.MEMBER, now));
         } catch (DataIntegrityViolationException e) {
-            // Gleichzeitiger Beitritt: einer der Unique-Indizes (Name oder Account in der Gruppe) hat ihn abgelehnt
+            // Gleichzeitiger Beitritt desselben Accounts: einer der Unique-Indizes (Name oder Account) hat ihn abgelehnt
             throw new GroupConflictException(
                     "Der Beitritt hat sich mit einem anderen überschnitten. Versuche es noch einmal.");
         }

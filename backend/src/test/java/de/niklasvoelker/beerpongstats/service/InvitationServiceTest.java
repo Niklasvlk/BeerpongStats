@@ -1,6 +1,7 @@
 package de.niklasvoelker.beerpongstats.service;
 
 import de.niklasvoelker.beerpongstats.config.GroupAccess;
+import de.niklasvoelker.beerpongstats.config.GroupLimits;
 import de.niklasvoelker.beerpongstats.exception.GroupConflictException;
 import de.niklasvoelker.beerpongstats.exception.GroupNotFoundException;
 import de.niklasvoelker.beerpongstats.exception.InvitationInvalidException;
@@ -21,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -57,7 +58,6 @@ class InvitationServiceTest {
     @Mock
     private GroupAccess groupAccess;
 
-    @InjectMocks
     private InvitationService invitationService;
 
     private PongGroup group;
@@ -67,6 +67,12 @@ class InvitationServiceTest {
     void setUp() {
         group = PongGroup.builder().id(10L).name("Kumpels").build();
         max = AppUser.builder().id(1L).username("Max").build();
+        invitationService = serviceWith(new GroupLimits(20, 100));
+    }
+
+    private InvitationService serviceWith(GroupLimits limits) {
+        return new InvitationService(invitationRepository, groupRepository, playerRepository, userRepository,
+                groupAccess, limits);
     }
 
     private LocalDateTime now() {
@@ -246,6 +252,7 @@ class InvitationServiceTest {
     private void stubValidAccept() {
         when(invitationRepository.findByTokenHash(InvitationService.hash(TOKEN))).thenReturn(Optional.of(activeInvitation()));
         when(userRepository.findById(1L)).thenReturn(Optional.of(max));
+        when(groupRepository.findForUpdate(10L)).thenReturn(Optional.of(group));
         when(playerRepository.findByGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
     }
 
@@ -254,7 +261,6 @@ class InvitationServiceTest {
         stubValidAccept();
         when(playerRepository.existsByGroupIdAndNameIgnoreCase(10L, "Max")).thenReturn(false);
         when(invitationRepository.consumeUse(eq(5L), any())).thenReturn(1);
-        when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
         when(playerRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(2L);
 
@@ -276,7 +282,6 @@ class InvitationServiceTest {
         stubValidAccept();
         when(playerRepository.existsByGroupIdAndNameIgnoreCase(10L, "Maxi")).thenReturn(false);
         when(invitationRepository.consumeUse(eq(5L), any())).thenReturn(1);
-        when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
         when(playerRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         invitationService.accept(TOKEN, 1L, " Maxi ");
@@ -290,6 +295,7 @@ class InvitationServiceTest {
     void accept_shouldRejectSomeoneWhoIsAlreadyAMemberWithoutUsingTheInvitation() {
         when(invitationRepository.findByTokenHash(InvitationService.hash(TOKEN))).thenReturn(Optional.of(activeInvitation()));
         when(userRepository.findById(1L)).thenReturn(Optional.of(max));
+        when(groupRepository.findForUpdate(10L)).thenReturn(Optional.of(group));
         when(playerRepository.findByGroupIdAndUserId(10L, 1L)).thenReturn(Optional.of(new Player()));
 
         assertThrows(GroupConflictException.class, () -> invitationService.accept(TOKEN, 1L, null));
@@ -337,7 +343,6 @@ class InvitationServiceTest {
         stubValidAccept();
         when(playerRepository.existsByGroupIdAndNameIgnoreCase(10L, "Max")).thenReturn(false);
         when(invitationRepository.consumeUse(eq(5L), any())).thenReturn(1);
-        when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
         when(playerRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("ux_player_group_user"));
 
         assertThrows(GroupConflictException.class, () -> invitationService.accept(TOKEN, 1L, null));
@@ -362,5 +367,61 @@ class InvitationServiceTest {
         assertThrows(UnknownUserException.class, () -> invitationService.accept(TOKEN, 1L, null));
 
         verify(invitationRepository, never()).consumeUse(anyLong(), any());
+    }
+
+    // --- Obergrenzen und Sperre ---
+
+    @Test
+    void accept_shouldLockTheGroupBeforeCheckingAndUsingTheInvitation() {
+        stubValidAccept();
+        when(playerRepository.existsByGroupIdAndNameIgnoreCase(10L, "Max")).thenReturn(false);
+        when(invitationRepository.consumeUse(eq(5L), any())).thenReturn(1);
+        when(playerRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        invitationService.accept(TOKEN, 1L, null);
+
+        InOrder order = inOrder(groupRepository, playerRepository, invitationRepository);
+        order.verify(groupRepository).findForUpdate(10L);
+        order.verify(playerRepository).countByGroupIdAndUserIsNotNull(10L);
+        order.verify(invitationRepository).consumeUse(eq(5L), any());
+    }
+
+    @Test
+    void accept_shouldRefuseAFullGroupWithoutUsingTheInvitation() {
+        stubValidAccept();
+        when(playerRepository.existsByGroupIdAndNameIgnoreCase(10L, "Max")).thenReturn(false);
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(3L);
+
+        GroupConflictException ex = assertThrows(GroupConflictException.class,
+                () -> serviceWith(new GroupLimits(20, 3)).accept(TOKEN, 1L, null));
+
+        assertEquals("Die Gruppe ist voll.", ex.getMessage());
+        verify(invitationRepository, never()).consumeUse(anyLong(), any());
+        verify(playerRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void accept_shouldTakeTheLastFreeSlot() {
+        stubValidAccept();
+        when(playerRepository.existsByGroupIdAndNameIgnoreCase(10L, "Max")).thenReturn(false);
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(2L);
+        when(invitationRepository.consumeUse(eq(5L), any())).thenReturn(1);
+        when(playerRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        serviceWith(new GroupLimits(20, 3)).accept(TOKEN, 1L, null);
+
+        verify(playerRepository).saveAndFlush(any());
+    }
+
+    @Test
+    void accept_shouldRefuseSomeoneWhoIsInTheMaximumNumberOfGroups() {
+        stubValidAccept();
+        when(playerRepository.existsByGroupIdAndNameIgnoreCase(10L, "Max")).thenReturn(false);
+        when(playerRepository.countByUserId(1L)).thenReturn(2L);
+
+        assertThrows(GroupConflictException.class, () -> serviceWith(new GroupLimits(2, 100)).accept(TOKEN, 1L, null));
+
+        verify(invitationRepository, never()).consumeUse(anyLong(), any());
+        verify(playerRepository, never()).saveAndFlush(any());
     }
 }

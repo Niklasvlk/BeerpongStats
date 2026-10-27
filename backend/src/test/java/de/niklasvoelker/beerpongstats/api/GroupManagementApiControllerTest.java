@@ -44,7 +44,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({MemberApiController.class, GroupInvitationApiController.class, InvitationApiController.class})
+@WebMvcTest({MemberApiController.class, GroupInvitationApiController.class, InvitationApiController.class,
+        GroupApiController.class})
 @Import(SecurityConfig.class)
 class GroupManagementApiControllerTest {
 
@@ -167,6 +168,114 @@ class GroupManagementApiControllerTest {
         mockMvc.perform(delete("/api/groups/5/members/me").with(csrf()).with(user(principal())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("letzter Admin"));
+    }
+
+    @Test
+    void removeMember_shouldReturn204() throws Exception {
+        mockMvc.perform(delete("/api/groups/5/members/2").with(csrf()).with(user(principal())))
+                .andExpect(status().isNoContent());
+
+        verify(groupService).removeMember(5L, 1L, 2L);
+    }
+
+    @Test
+    void removeMember_shouldReturn403ForANonAdmin() throws Exception {
+        doThrow(new NotGroupAdminException()).when(groupService).removeMember(5L, 1L, 2L);
+
+        mockMvc.perform(delete("/api/groups/5/members/2").with(csrf()).with(user(principal())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void removeMember_shouldReturn409ForAnAdminTarget() throws Exception {
+        doThrow(new GroupConflictException("Stufe sie zuerst herab.")).when(groupService).removeMember(5L, 1L, 2L);
+
+        mockMvc.perform(delete("/api/groups/5/members/2").with(csrf()).with(user(principal())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Stufe sie zuerst herab."));
+    }
+
+    @Test
+    void removeMember_shouldNotBeConfusedWithLeaving() throws Exception {
+        mockMvc.perform(delete("/api/groups/5/members/me").with(csrf()).with(user(principal())))
+                .andExpect(status().isNoContent());
+
+        verify(groupService).leaveGroup(5L, 1L);
+        verify(groupService, org.mockito.Mockito.never()).removeMember(any(), any(), any());
+    }
+
+    @Test
+    void removeMember_shouldRejectMissingCsrfToken() throws Exception {
+        mockMvc.perform(delete("/api/groups/5/members/2").with(user(principal())))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(groupService);
+    }
+
+    // --- Gruppe umbenennen und löschen ---
+
+    private GroupMembership groupOf(String name) {
+        PongGroup group = PongGroup.builder().id(5L).name(name).build();
+        return new GroupMembership(group, player(20L, "Max", Role.ADMIN, true), 3);
+    }
+
+    @Test
+    void renameGroup_shouldReturnTheRenamedGroup() throws Exception {
+        when(groupService.renameGroup(5L, 1L, "Neue Crew")).thenReturn(groupOf("Neue Crew"));
+
+        mockMvc.perform(patch("/api/groups/5").with(csrf()).with(user(principal()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Neue Crew\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.name").value("Neue Crew"))
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+    }
+
+    @Test
+    void renameGroup_shouldReturn403ForANonAdmin() throws Exception {
+        when(groupService.renameGroup(5L, 1L, "Neu")).thenThrow(new NotGroupAdminException());
+
+        mockMvc.perform(patch("/api/groups/5").with(csrf()).with(user(principal()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Neu\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void renameGroup_shouldReturn400ForAnInvalidName() throws Exception {
+        when(groupService.renameGroup(5L, 1L, " ")).thenThrow(new IllegalArgumentException("leer"));
+
+        mockMvc.perform(patch("/api/groups/5").with(csrf()).with(user(principal()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\" \"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteGroup_shouldReturn204() throws Exception {
+        mockMvc.perform(delete("/api/groups/5").with(csrf()).with(user(principal())))
+                .andExpect(status().isNoContent());
+
+        verify(groupService).deleteGroup(5L, 1L);
+    }
+
+    @Test
+    void deleteGroup_shouldReturn403ForANonAdmin() throws Exception {
+        doThrow(new NotGroupAdminException()).when(groupService).deleteGroup(5L, 1L);
+
+        mockMvc.perform(delete("/api/groups/5").with(csrf()).with(user(principal())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void groupManagementEndpoints_shouldRequireLoginAndCsrf() throws Exception {
+        mockMvc.perform(patch("/api/groups/5").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Neu\"}")).andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/groups/5").with(csrf())).andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/groups/5").with(user(principal()))).andExpect(status().isForbidden());
+
+        verifyNoInteractions(groupService);
     }
 
     // --- Einladungen verwalten ---

@@ -133,6 +133,9 @@ class GroupIsolationTest extends ApiIntegrationTest {
             getAs(outsider, a + "/members").andExpect(status().isNotFound());
             patchAs(outsider, a + "/members/" + annaId, "{\"role\":\"ADMIN\"}").andExpect(status().isNotFound());
             deleteAs(outsider, a + "/members/me").andExpect(status().isNotFound());
+            patchAs(outsider, a, "{\"name\":\"Gekapert\"}").andExpect(status().isNotFound());
+            deleteAs(outsider, a).andExpect(status().isNotFound());
+            deleteAs(outsider, a + "/members/" + annaId).andExpect(status().isNotFound());
             getAs(outsider, a + "/invitations").andExpect(status().isNotFound());
             postAs(outsider, a + "/invitations", null).andExpect(status().isNotFound());
             deleteAs(outsider, a + "/invitations/1").andExpect(status().isNotFound());
@@ -142,7 +145,9 @@ class GroupIsolationTest extends ApiIntegrationTest {
                     .andExpect(status().isNotFound());
         }
 
+        // Nichts davon hat die Gruppe verändert
         assertEquals(10, matchRepository.findAllByGroupIdOrderByPlayedAtDesc(groupA).size());
+        assertEquals("Gruppe A", groupRepository.findById(groupA).orElseThrow().getName());
     }
 
     @Test

@@ -30,6 +30,9 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
 
     boolean existsByGroupIdAndNameIgnoreCase(Long groupId, String name);
 
+    // In wie vielen Gruppen ein Account Mitglied ist
+    long countByUserId(Long userId);
+
     // Mitglieder sind die Spieler mit Account; ohne Account sind ehemalige Mitglieder (und später Platzhalter)
     long countByGroupIdAndUserIsNotNull(Long groupId);
 

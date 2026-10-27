@@ -1,6 +1,7 @@
 package de.niklasvoelker.beerpongstats.service;
 
 import de.niklasvoelker.beerpongstats.config.GroupAccess;
+import de.niklasvoelker.beerpongstats.config.GroupLimits;
 import de.niklasvoelker.beerpongstats.exception.GroupConflictException;
 import de.niklasvoelker.beerpongstats.exception.GroupNotFoundException;
 import de.niklasvoelker.beerpongstats.exception.NotGroupAdminException;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -55,7 +55,6 @@ class GroupServiceTest {
     @Mock
     private GroupAccess groupAccess;
 
-    @InjectMocks
     private GroupService groupService;
 
     private AppUser max;
@@ -63,6 +62,12 @@ class GroupServiceTest {
     @BeforeEach
     void setUp() {
         max = AppUser.builder().id(1L).username("Max").password("hash").build();
+        groupService = serviceWith(new GroupLimits(20, 100));
+    }
+
+    private GroupService serviceWith(GroupLimits limits) {
+        return new GroupService(groupRepository, playerRepository, userRepository, matchRepository,
+                invitationRepository, groupAccess, limits);
     }
 
     private void stubSaves() {
@@ -385,5 +390,169 @@ class GroupServiceTest {
         groupService.releaseMemberships(1L);
 
         verify(groupRepository, never()).deleteGroup(any());
+    }
+
+    // --- Mitglieder entfernen ---
+
+    private Player admin(Long id, PongGroup group) {
+        Player admin = member(id, group, Role.ADMIN, max);
+        when(groupAccess.requireAdmin(10L, 1L)).thenReturn(admin);
+        return admin;
+    }
+
+    @Test
+    void removeMember_shouldDetachTheMemberAndKeepThePlayer() {
+        PongGroup g = group(10L);
+        admin(20L, g);
+        Player target = member(21L, g, Role.MEMBER, AppUser.builder().id(2L).build());
+        when(playerRepository.findByIdAndGroupId(21L, 10L)).thenReturn(Optional.of(target));
+
+        groupService.removeMember(10L, 1L, 21L);
+
+        assertNull(target.getUser());
+        assertEquals(Role.MEMBER, target.getRole());
+        verify(playerRepository, never()).delete(any());
+        verify(groupRepository, never()).deleteGroup(any());
+    }
+
+    @Test
+    void removeMember_shouldRequireAnAdmin() {
+        doThrow(new NotGroupAdminException()).when(groupAccess).requireAdmin(10L, 1L);
+
+        assertThrows(NotGroupAdminException.class, () -> groupService.removeMember(10L, 1L, 21L));
+
+        verifyNoInteractions(playerRepository);
+    }
+
+    @Test
+    void removeMember_shouldNotFindAPlayerOfAnotherGroup() {
+        admin(20L, group(10L));
+        when(playerRepository.findByIdAndGroupId(21L, 10L)).thenReturn(Optional.empty());
+
+        assertThrows(PlayerNotFoundByIDException.class, () -> groupService.removeMember(10L, 1L, 21L));
+    }
+
+    @Test
+    void removeMember_shouldRefuseToRemoveYourself() {
+        PongGroup g = group(10L);
+        Player me = admin(20L, g);
+        when(playerRepository.findByIdAndGroupId(20L, 10L)).thenReturn(Optional.of(me));
+
+        assertThrows(GroupConflictException.class, () -> groupService.removeMember(10L, 1L, 20L));
+
+        assertSame(max, me.getUser());
+    }
+
+    @Test
+    void removeMember_shouldRefuseToRemoveAnotherAdmin() {
+        PongGroup g = group(10L);
+        admin(20L, g);
+        Player otherAdmin = member(21L, g, Role.ADMIN, AppUser.builder().id(2L).build());
+        when(playerRepository.findByIdAndGroupId(21L, 10L)).thenReturn(Optional.of(otherAdmin));
+
+        GroupConflictException ex = assertThrows(GroupConflictException.class,
+                () -> groupService.removeMember(10L, 1L, 21L));
+
+        assertTrue(ex.getMessage().contains("herab"));
+        assertNotNull(otherAdmin.getUser());
+        assertEquals(Role.ADMIN, otherAdmin.getRole());
+    }
+
+    @Test
+    void removeMember_shouldRefuseAPlayerWithoutAccount() {
+        PongGroup g = group(10L);
+        admin(20L, g);
+        Player former = member(21L, g, Role.MEMBER, null);
+        when(playerRepository.findByIdAndGroupId(21L, 10L)).thenReturn(Optional.of(former));
+
+        assertThrows(GroupConflictException.class, () -> groupService.removeMember(10L, 1L, 21L));
+    }
+
+    // --- Umbenennen und löschen ---
+
+    @Test
+    void renameGroup_shouldTrimAndStoreTheName() {
+        PongGroup g = group(10L);
+        Player admin = admin(20L, g);
+        when(groupRepository.findById(10L)).thenReturn(Optional.of(g));
+        when(playerRepository.countByGroupIdAndUserIsNotNull(10L)).thenReturn(3L);
+
+        GroupMembership result = groupService.renameGroup(10L, 1L, "  Neue Crew ");
+
+        assertEquals("Neue Crew", g.getName());
+        assertSame(g, result.group());
+        assertSame(admin, result.player());
+        assertEquals(3, result.memberCount());
+    }
+
+    @Test
+    void renameGroup_shouldRequireAnAdmin() {
+        doThrow(new NotGroupAdminException()).when(groupAccess).requireAdmin(10L, 1L);
+
+        assertThrows(NotGroupAdminException.class, () -> groupService.renameGroup(10L, 1L, "Neu"));
+
+        verifyNoInteractions(groupRepository);
+    }
+
+    @Test
+    void renameGroup_shouldRejectInvalidNamesAndKeepTheOldOne() {
+        PongGroup g = group(10L);
+        admin(20L, g);
+        when(groupRepository.findById(10L)).thenReturn(Optional.of(g));
+
+        assertThrows(IllegalArgumentException.class, () -> groupService.renameGroup(10L, 1L, "  "));
+        assertThrows(IllegalArgumentException.class, () -> groupService.renameGroup(10L, 1L, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> groupService.renameGroup(10L, 1L, "a".repeat(GroupService.MAX_GROUP_NAME_LENGTH + 1)));
+
+        assertEquals("Kumpels", g.getName());
+    }
+
+    @Test
+    void deleteGroup_shouldRemoveEverythingOfTheGroupInOrder() {
+        admin(20L, group(10L));
+
+        groupService.deleteGroup(10L, 1L);
+
+        InOrder order = inOrder(matchRepository, invitationRepository, playerRepository, groupRepository);
+        order.verify(matchRepository).deleteAllOfGroup(10L);
+        order.verify(invitationRepository).deleteAllOfGroup(10L);
+        order.verify(playerRepository).deleteAllOfGroup(10L);
+        order.verify(groupRepository).deleteGroup(10L);
+    }
+
+    @Test
+    void deleteGroup_shouldRequireAnAdmin() {
+        doThrow(new NotGroupAdminException()).when(groupAccess).requireAdmin(10L, 1L);
+
+        assertThrows(NotGroupAdminException.class, () -> groupService.deleteGroup(10L, 1L));
+
+        verifyNoInteractions(matchRepository, invitationRepository, groupRepository);
+        verify(playerRepository, never()).deleteAllOfGroup(any());
+    }
+
+    // --- Limits ---
+
+    @Test
+    void createGroup_shouldRefuseAMemberOfTheMaximumNumberOfGroups() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(max));
+        when(playerRepository.countByUserId(1L)).thenReturn(2L);
+
+        GroupConflictException ex = assertThrows(GroupConflictException.class,
+                () -> serviceWith(new GroupLimits(2, 100)).createGroup(1L, "Kumpels", null));
+
+        assertTrue(ex.getMessage().contains("2"));
+        verify(groupRepository, never()).save(any());
+    }
+
+    @Test
+    void createGroup_shouldAllowOneGroupBelowTheLimit() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(max));
+        when(playerRepository.countByUserId(1L)).thenReturn(1L);
+        stubSaves();
+
+        serviceWith(new GroupLimits(2, 100)).createGroup(1L, "Kumpels", null);
+
+        verify(groupRepository).save(any());
     }
 }

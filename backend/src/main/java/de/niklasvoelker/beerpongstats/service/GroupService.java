@@ -1,6 +1,7 @@
 package de.niklasvoelker.beerpongstats.service;
 
 import de.niklasvoelker.beerpongstats.config.GroupAccess;
+import de.niklasvoelker.beerpongstats.config.GroupLimits;
 import de.niklasvoelker.beerpongstats.exception.GroupConflictException;
 import de.niklasvoelker.beerpongstats.exception.GroupNotFoundException;
 import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByIDException;
@@ -41,22 +42,25 @@ public class GroupService {
     private final MatchRepository matchRepository;
     private final InvitationRepository invitationRepository;
     private final GroupAccess groupAccess;
+    private final GroupLimits limits;
 
     public GroupService(GroupRepository groupRepository, PlayerRepository playerRepository,
                         AppUserRepository userRepository, MatchRepository matchRepository,
-                        InvitationRepository invitationRepository, GroupAccess groupAccess) {
+                        InvitationRepository invitationRepository, GroupAccess groupAccess, GroupLimits limits) {
         this.groupRepository = groupRepository;
         this.playerRepository = playerRepository;
         this.userRepository = userRepository;
         this.matchRepository = matchRepository;
         this.invitationRepository = invitationRepository;
         this.groupAccess = groupAccess;
+        this.limits = limits;
     }
 
     // Der Ersteller wird Admin; sein Spielername in der Gruppe ist standardmäßig der Benutzername
     @Transactional
     public GroupMembership createGroup(Long userId, String name, String displayName) {
         AppUser user = userRepository.findById(userId).orElseThrow(UnknownUserException::new);
+        requireRoomForAnotherGroup(playerRepository, limits, userId);
 
         String groupName = requireText(name, "Der Gruppenname darf nicht leer sein.",
                 "Der Gruppenname darf höchstens " + MAX_GROUP_NAME_LENGTH + " Zeichen lang sein.", MAX_GROUP_NAME_LENGTH);
@@ -67,6 +71,24 @@ public class GroupService {
         Player player = playerRepository.save(newMember(group, user, playerName, Role.ADMIN, now));
 
         return new GroupMembership(group, player, 1);
+    }
+
+    @Transactional
+    public GroupMembership renameGroup(Long groupId, Long userId, String name) {
+        Player admin = groupAccess.requireAdmin(groupId, userId);
+        PongGroup group = groupRepository.findById(groupId).orElseThrow(GroupNotFoundException::new);
+
+        group.setName(requireText(name, "Der Gruppenname darf nicht leer sein.",
+                "Der Gruppenname darf höchstens " + MAX_GROUP_NAME_LENGTH + " Zeichen lang sein.", MAX_GROUP_NAME_LENGTH));
+
+        return new GroupMembership(group, admin, playerRepository.countByGroupIdAndUserIsNotNull(groupId));
+    }
+
+    // Löscht die Gruppe samt Matches, Spielern und Einladungen
+    @Transactional
+    public void deleteGroup(Long groupId, Long userId) {
+        groupAccess.requireAdmin(groupId, userId);
+        deleteGroupData(groupId);
     }
 
     @Transactional(readOnly = true)
@@ -109,6 +131,29 @@ public class GroupService {
 
         target.setRole(role);
         return target;
+    }
+
+    /**
+     * Ein Admin entfernt ein Mitglied. Wie beim Verlassen bleibt dessen Spieler ohne Account in der Gruppe stehen.
+     * Admins müssen vorher herabgestuft werden, damit niemand einen anderen Admin mit einem Klick hinauswirft.
+     */
+    @Transactional
+    public void removeMember(Long groupId, Long userId, Long playerId) {
+        Player admin = groupAccess.requireAdmin(groupId, userId);
+
+        Player target = playerRepository.findByIdAndGroupId(playerId, groupId)
+                .orElseThrow(() -> new PlayerNotFoundByIDException(playerId));
+        if (target.getId().equals(admin.getId())) {
+            throw new GroupConflictException("Um die Gruppe zu verlassen, nutze 'Gruppe verlassen'.");
+        }
+        if (target.getUser() == null) {
+            throw new GroupConflictException("Dieser Spieler gehört schon zu keinem Account mehr.");
+        }
+        if (target.getRole() == Role.ADMIN) {
+            throw new GroupConflictException("Admins können nicht entfernt werden. Stufe sie zuerst zum Mitglied herab.");
+        }
+
+        detach(target);
     }
 
     /**
@@ -173,6 +218,13 @@ public class GroupService {
         invitationRepository.deleteAllOfGroup(groupId);
         playerRepository.deleteAllOfGroup(groupId);
         groupRepository.deleteGroup(groupId);
+    }
+
+    static void requireRoomForAnotherGroup(PlayerRepository playerRepository, GroupLimits limits, Long userId) {
+        if (playerRepository.countByUserId(userId) >= limits.maxGroupsPerUser()) {
+            throw new GroupConflictException(
+                    "Du kannst höchstens in " + limits.maxGroupsPerUser() + " Gruppen Mitglied sein.");
+        }
     }
 
     static Player newMember(PongGroup group, AppUser user, String name, Role role, LocalDateTime now) {
