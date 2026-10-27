@@ -44,8 +44,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({MemberApiController.class, GroupInvitationApiController.class, InvitationApiController.class,
-        GroupApiController.class})
+@WebMvcTest(controllers = {MemberApiController.class, GroupInvitationApiController.class,
+        InvitationApiController.class, GroupApiController.class}, properties = "beerpong.rate-limit.enabled=false")
 @Import(SecurityConfig.class)
 class GroupManagementApiControllerTest {
 

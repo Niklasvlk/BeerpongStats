@@ -1,7 +1,11 @@
 package de.niklasvoelker.beerpongstats.config;
 
+import de.niklasvoelker.beerpongstats.ratelimit.RateLimitFilter;
+import de.niklasvoelker.beerpongstats.ratelimit.RateLimitProperties;
+import de.niklasvoelker.beerpongstats.ratelimit.RateLimiters;
 import de.niklasvoelker.beerpongstats.repository.AppUserRepository;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -17,9 +21,13 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
+import java.time.Clock;
+
 @Configuration
+@EnableConfigurationProperties(RateLimitProperties.class)
 public class SecurityConfig {
 
     @Bean
@@ -46,9 +54,15 @@ public class SecurityConfig {
         return CookieCsrfTokenRepository.withHttpOnlyFalse();
     }
 
+    // Der Zustand der Limiter lebt in diesem einen Objekt; der Filter und der Login im AuthApiController teilen es
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CookieCsrfTokenRepository csrfTokenRepository)
-            throws Exception {
+    public RateLimiters rateLimiters(RateLimitProperties properties) {
+        return new RateLimiters(properties, Clock.systemUTC());
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CookieCsrfTokenRepository csrfTokenRepository,
+                                                   RateLimiters rateLimiters) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         // Logout ohne Session ist harmlos, ein 401 würde nur das Frontend stören
@@ -62,6 +76,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                // Vor der CSRF-Prüfung und vor jeder Passwortprüfung: abgewiesene Anfragen kosten fast nichts
+                .addFilterBefore(new RateLimitFilter(rateLimiters), CsrfFilter.class)
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
         return http.build();

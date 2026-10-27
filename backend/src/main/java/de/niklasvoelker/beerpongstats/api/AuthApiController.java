@@ -4,7 +4,10 @@ import de.niklasvoelker.beerpongstats.api.dto.LoginRequest;
 import de.niklasvoelker.beerpongstats.api.dto.RegisterRequest;
 import de.niklasvoelker.beerpongstats.api.dto.UserResponse;
 import de.niklasvoelker.beerpongstats.config.AppUserDetails;
+import de.niklasvoelker.beerpongstats.exception.TooManyRequestsException;
 import de.niklasvoelker.beerpongstats.model.AppUser;
+import de.niklasvoelker.beerpongstats.ratelimit.RateLimiters;
+import de.niklasvoelker.beerpongstats.ratelimit.SlidingWindowLimiter;
 import de.niklasvoelker.beerpongstats.repository.AppUserRepository;
 import de.niklasvoelker.beerpongstats.service.UserService;
 import jakarta.servlet.ServletException;
@@ -15,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -34,15 +39,18 @@ public class AuthApiController {
     private final AppUserRepository userRepository;
     private final UserService userService;
     private final CsrfTokenRepository csrfTokenRepository;
+    private final RateLimiters rateLimiters;
     private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
     public AuthApiController(AuthenticationManager authenticationManager, AppUserRepository userRepository,
-                             UserService userService, CsrfTokenRepository csrfTokenRepository) {
+                             UserService userService, CsrfTokenRepository csrfTokenRepository,
+                             RateLimiters rateLimiters) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.userService = userService;
         this.csrfTokenRepository = csrfTokenRepository;
+        this.rateLimiters = rateLimiters;
     }
 
     @PostMapping("/register")
@@ -54,8 +62,7 @@ public class AuthApiController {
     @PostMapping("/login")
     public UserResponse login(@RequestBody LoginRequest login,
                               HttpServletRequest request, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken.unauthenticated(login.username(), login.password()));
+        Authentication authentication = authenticate(login);
 
         // Session-Fixation-Schutz
         if (request.getSession(false) != null) {
@@ -68,6 +75,31 @@ public class AuthApiController {
         contextRepository.saveContext(context, request, response);
 
         return currentUser(authentication);
+    }
+
+    // Zusätzlich zur Grenze pro Client-Adresse (RateLimitFilter): Wer sich als ein bestimmter Benutzer anmelden will,
+    // hat nur wenige Fehlversuche, auch wenn sie von vielen Adressen kommen. Gesperrt wird, ohne das Passwort zu prüfen,
+    // sonst ließe es sich trotz Sperre weiter erraten. Unbekannte Namen zählen genauso wie bekannte, die Sperre
+    // verrät also nicht, ob es einen Account gibt.
+    private Authentication authenticate(LoginRequest login) {
+        SlidingWindowLimiter failures = rateLimiters.failedLogins();
+        String key = login.username() == null ? "" : login.username().trim().toLowerCase(Locale.ROOT);
+        key = key.length() > 100 ? key.substring(0, 100) : key;
+
+        if (rateLimiters.enabled() && failures.isLimited(key)) {
+            throw new TooManyRequestsException(failures.retryAfterSeconds(key));
+        }
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    UsernamePasswordAuthenticationToken.unauthenticated(login.username(), login.password()));
+            failures.reset(key);
+            return authentication;
+        } catch (AuthenticationException e) {
+            if (rateLimiters.enabled()) {
+                failures.record(key);
+            }
+            throw e;
+        }
     }
 
     @PostMapping("/logout")

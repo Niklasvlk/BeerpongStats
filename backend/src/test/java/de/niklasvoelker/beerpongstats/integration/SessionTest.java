@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -116,5 +117,61 @@ class SessionTest extends ApiIntegrationTest {
         assertNull(csrfToken);
 
         assertEquals(403, postJson("/api/auth/register", credentials(), null).getResponse().getStatus());
+    }
+
+    // --- Passwortregeln ---
+
+    private MvcResult registerWithPassword(String password) throws Exception {
+        return postJson("/api/auth/register", json("username", "Max", "password", password), null);
+    }
+
+    @Test
+    void aPasswordShorterThanEightCharactersIsRefusedWithTheReason() throws Exception {
+        openApp();
+
+        MvcResult result = registerWithPassword("1234567");
+
+        assertEquals(409, result.getResponse().getStatus());
+        assertTrue(result.getResponse().getContentAsString().contains("Das Passwort muss mindestens 8 Zeichen lang sein."),
+                result.getResponse().getContentAsString());
+        assertEquals(0, userRepository.count());
+    }
+
+    @Test
+    void aPasswordOfExactlyEightCharactersIsAccepted() throws Exception {
+        openApp();
+
+        assertEquals(201, registerWithPassword("12345678").getResponse().getStatus());
+        assertEquals(200, postJson("/api/auth/login", json("username", "Max", "password", "12345678"), null).getResponse().getStatus());
+    }
+
+    @Test
+    void aPasswordBcryptCannotTakeIsRefusedWithTheReasonInsteadOfAnError() throws Exception {
+        openApp();
+
+        MvcResult result = registerWithPassword("a".repeat(73));
+
+        assertEquals(409, result.getResponse().getStatus());
+        assertTrue(result.getResponse().getContentAsString().contains("zu lang"), result.getResponse().getContentAsString());
+        assertEquals(0, userRepository.count());
+    }
+
+    @Test
+    void theLongestAllowedPasswordWorksForRegistrationAndLogin() throws Exception {
+        openApp();
+        String longest = "a".repeat(72);
+
+        assertEquals(201, registerWithPassword(longest).getResponse().getStatus());
+        assertEquals(200, postJson("/api/auth/login", json("username", "Max", "password", longest), null).getResponse().getStatus());
+    }
+
+    @Test
+    void loggingInWithAnAbsurdlyLongPasswordIsJustAWrongPassword() throws Exception {
+        openApp();
+        assertEquals(201, registerWithPassword("geheim1234").getResponse().getStatus());
+
+        MvcResult result = postJson("/api/auth/login", json("username", "Max", "password", "x".repeat(5000)), null);
+
+        assertEquals(401, result.getResponse().getStatus());
     }
 }

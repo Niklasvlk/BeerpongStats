@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -16,6 +17,9 @@ import java.time.ZoneOffset;
 public class UserService {
 
     static final int MAX_USERNAME_LENGTH = 30;
+    static final int MIN_PASSWORD_LENGTH = 8;
+    // BCrypt verarbeitet höchstens 72 Bytes; längere Passwörter würden abgelehnt oder abgeschnitten
+    static final int MAX_PASSWORD_BYTES = 72;
 
     private final AppUserRepository repository;
     private final PasswordEncoder passwordEncoder;
@@ -38,8 +42,15 @@ public class UserService {
                     "Der Benutzername darf höchstens " + MAX_USERNAME_LENGTH + " Zeichen lang sein.");
         }
 
-        if (password == null || password.length() < 4) {
-            throw new InvalidUserDataException("Das Passwort ist zu kurz.");
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+            throw new InvalidUserDataException(
+                    "Das Passwort muss mindestens " + MIN_PASSWORD_LENGTH + " Zeichen lang sein.");
+        }
+
+        if (password.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
+            throw new InvalidUserDataException(
+                    "Das Passwort ist zu lang. Es darf höchstens " + MAX_PASSWORD_BYTES + " Bytes lang sein "
+                            + "(Umlaute und Sonderzeichen zählen mehrfach).");
         }
 
         if (repository.existsByUsernameIgnoreCase(username.trim())) {

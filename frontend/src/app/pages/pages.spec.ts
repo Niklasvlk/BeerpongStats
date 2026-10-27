@@ -442,7 +442,7 @@ describe('pages', () => {
 
   it('registration signs in and leads a new user to the group list', async () => {
     const component = await harness.navigateByUrl('/register');
-    fillAndSubmit(component, { username: 'Max', password: '1234' });
+    fillAndSubmit(component, { username: 'Max', password: 'test1234' });
 
     http.expectOne('/api/auth/register').flush({ id: 1, username: 'Max' });
     http.expectOne('/api/auth/login').flush({ id: 1, username: 'Max' });
@@ -454,7 +454,7 @@ describe('pages', () => {
 
   it('registration through a link continues where the link pointed', async () => {
     const component = await harness.navigateByUrl('/register?returnUrl=%2Fg%2F7');
-    fillAndSubmit(component, { username: 'Max', password: '1234' });
+    fillAndSubmit(component, { username: 'Max', password: 'test1234' });
 
     http.expectOne('/api/auth/register').flush({ id: 1, username: 'Max' });
     http.expectOne('/api/auth/login').flush({ id: 1, username: 'Max' });
@@ -466,7 +466,7 @@ describe('pages', () => {
 
   it('registration shows the reason when the name is taken', async () => {
     const component = await harness.navigateByUrl('/register');
-    fillAndSubmit(component, { username: 'Max', password: '1234' });
+    fillAndSubmit(component, { username: 'Max', password: 'test1234' });
     http.expectOne('/api/auth/register').flush(
       { status: 409, title: 'Conflict', detail: "Ein Benutzer mit dem Namen 'Max' existiert bereits." },
       { status: 409, statusText: 'Conflict' },
@@ -477,12 +477,88 @@ describe('pages', () => {
     http.expectNone('/api/auth/login');
   });
 
-  it('registration needs a password of at least four characters', async () => {
+  it('registration needs a password of at least eight characters', async () => {
     const component = (await harness.navigateByUrl('/register')) as unknown as { form: FormGroup; submit(): void };
-    component.form.patchValue({ username: 'Max', password: '123' });
+    component.form.patchValue({ username: 'Max', password: '1234567' });
     component.submit();
 
     http.expectNone('/api/auth/register');
+  });
+
+  it('registration explains why a short password is not accepted', async () => {
+    const component = (await harness.navigateByUrl('/register')) as unknown as { form: FormGroup };
+    const text = () => (harness.routeNativeElement as HTMLElement).textContent ?? '';
+
+    // Solange nichts getippt wurde, steht kein Fehler da
+    expect(text()).not.toContain('mindestens 8 Zeichen lang sein');
+
+    component.form.controls['password'].setValue('1234567');
+    component.form.controls['password'].markAsDirty();
+    harness.detectChanges();
+
+    expect(text()).toContain('Das Passwort muss mindestens 8 Zeichen lang sein.');
+    expect((harness.routeNativeElement as HTMLElement).querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+
+    component.form.controls['password'].setValue('12345678');
+    harness.detectChanges();
+
+    expect(text()).not.toContain('mindestens 8 Zeichen lang sein');
+  });
+
+  it('registration explains a password that is too long', async () => {
+    const component = (await harness.navigateByUrl('/register')) as unknown as { form: FormGroup };
+    component.form.controls['password'].setValue('a'.repeat(73));
+    component.form.controls['password'].markAsDirty();
+    harness.detectChanges();
+    await settle();
+
+    expect((harness.routeNativeElement as HTMLElement).textContent).toContain('höchstens 72 Zeichen');
+  });
+
+  it('registration accepts a password of exactly eight characters', async () => {
+    const component = (await harness.navigateByUrl('/register')) as unknown as { form: FormGroup; submit(): void };
+    component.form.patchValue({ username: 'Max', password: '12345678' });
+    component.submit();
+
+    http.expectOne('/api/auth/register').flush({ id: 1, username: 'Max' });
+    http.expectOne('/api/auth/login').flush({ id: 1, username: 'Max' });
+    http.expectOne('/api/groups').flush([]);
+    await vi.waitFor(() => expect(url()).toBe('/groups'));
+    http.expectOne('/api/groups').flush([]);
+  });
+
+  it('registration refuses a password the backend cannot hash', async () => {
+    const component = (await harness.navigateByUrl('/register')) as unknown as { form: FormGroup; submit(): void };
+    component.form.patchValue({ username: 'Max', password: 'a'.repeat(73) });
+    component.submit();
+
+    http.expectNone('/api/auth/register');
+  });
+
+  it('registration shows the password rule of the backend', async () => {
+    const component = (await harness.navigateByUrl('/register')) as unknown as { form: FormGroup; submit(): void };
+    component.form.patchValue({ username: 'Max', password: 'abcdefgh' });
+    component.submit();
+    http.expectOne('/api/auth/register').flush(
+      { status: 409, title: 'Conflict', detail: 'Das Passwort muss mindestens 8 Zeichen lang sein.' },
+      { status: 409, statusText: 'Conflict' },
+    );
+    await settle();
+
+    expect(text()).toContain('mindestens 8 Zeichen');
+  });
+
+  it('login shows the message when too many attempts were made', async () => {
+    const component = await harness.navigateByUrl('/login');
+    fillAndSubmit(component, { username: 'Max', password: 'falsch123' });
+    http.expectOne('/api/auth/login').flush(
+      { status: 429, title: 'Too Many Requests', detail: 'Zu viele Versuche. Bitte versuche es in 42 Sekunden erneut.' },
+      { status: 429, statusText: 'Too Many Requests' },
+    );
+    await settle();
+
+    expect(text()).toContain('Zu viele Versuche. Bitte versuche es in 42 Sekunden erneut.');
+    expect((harness.routeNativeElement as HTMLElement).querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(false);
   });
 
   // --- Profil ---

@@ -52,7 +52,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({PlayerApiController.class, MatchApiController.class, AuthApiController.class, GroupApiController.class})
+@WebMvcTest(controllers = {PlayerApiController.class, MatchApiController.class, AuthApiController.class,
+        GroupApiController.class}, properties = "beerpong.rate-limit.enabled=false")
 @Import(SecurityConfig.class)
 class ApiControllerTest {
 

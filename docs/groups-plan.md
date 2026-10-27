@@ -222,6 +222,11 @@ Jede Etappe endet in einem lauffähigen, getesteten Stand (`./gradlew test`, `np
 
 **Stand Etappe 4b (umgesetzt):** `/join/:token` (Vorschau ohne Login, Beitreten mit Account, Registrieren/Login führen per `returnUrl` zurück) und `/g/:groupId/settings` mit drei Bereichen: Mitglieder (Rollen ändern, entfernen), Einladungen (nur Admins: erstellen, widerrufen, Link wird nur direkt nach dem Erstellen angezeigt und lässt sich kopieren) und Gruppe (umbenennen, verlassen, löschen). Die Navbar hat einen "Settings"-Link. Ein QR-Code für den Link ist nicht dabei.
 
+**Stand Etappe 5 (teilweise umgesetzt):** Rate Limiting und Passwort-Mindestlänge.
+- Der `RateLimitFilter` begrenzt `POST /api/auth/login`, `/api/auth/register` und `/api/invitations/{token}/accept` pro Client-Adresse (IPv6 pro /64-Netz). Zusätzlich sperrt der Login nach zu vielen Fehlversuchen einen Benutzernamen, egal von welcher Adresse; unbekannte Namen zählen genauso. Zustand im Speicher (`SlidingWindowLimiter`), einstellbar über `beerpong.rate-limit.*`.
+- Passwörter brauchen mindestens 8 Zeichen und höchstens 72 Bytes (BCrypt-Grenze), im Backend und im Registrierungsformular.
+- Noch offen aus Etappe 5: Impressum und Datenschutz, Handler für abgelaufene Sessions im Frontend, Produktions-DB leeren und Smoke-Test.
+
 **Etappe 5: Absicherung und Rollout**
 - Rate Limiting auf Login, Registrierung und `accept` (z. B. Bucket4j oder ein einfacher IP-basierter Filter), Passwort-Mindestlänge von 4 auf 8, Username-Regeln (Länge, erlaubte Zeichen).
 - Impressum und Datenschutzerklärung als statische Seiten, README und Docker-Hinweise aktualisieren.

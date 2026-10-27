@@ -1,11 +1,11 @@
 package de.niklasvoelker.beerpongstats.integration;
 
-import org.junit.jupiter.api.condition.EnabledIf;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.DockerClientFactory;
+import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -18,15 +18,12 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@EnabledIf(value = "de.niklasvoelker.beerpongstats.integration.PostgresIntegrationTest#dockerAvailable",
-        disabledReason = "Docker ist nicht verfügbar")
+// Die Tests melden sich hundertfach von derselben Adresse an; das Rate Limiting hat seinen eigenen Test
+@TestPropertySource(properties = "beerpong.rate-limit.enabled=false")
+@ExtendWith(DockerAvailableCondition.class)
 abstract class PostgresIntegrationTest {
 
     private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:15");
-
-    static boolean dockerAvailable() {
-        return DockerClientFactory.instance().isDockerAvailable();
-    }
 
     private static synchronized PostgreSQLContainer postgres() {
         if (!POSTGRES.isRunning()) {

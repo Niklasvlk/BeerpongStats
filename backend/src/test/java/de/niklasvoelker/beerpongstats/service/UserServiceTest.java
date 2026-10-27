@@ -42,15 +42,15 @@ class UserServiceTest {
     void register_shouldSaveUserCorrectly() {
         when(repository.existsByUsernameIgnoreCase("Max")).thenReturn(false);
 
-        userService.register("Max", "1234");
+        userService.register("Max", "geheim1234");
 
         ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
         verify(repository).save(captor.capture());
 
         AppUser saved = captor.getValue();
         assertEquals("Max", saved.getUsername());
-        assertNotEquals("1234", saved.getPassword());
-        assertTrue(passwordEncoder.matches("1234", saved.getPassword()));
+        assertNotEquals("geheim1234", saved.getPassword());
+        assertTrue(passwordEncoder.matches("geheim1234", saved.getPassword()));
         assertNotNull(saved.getCreatedAt());
     }
 
@@ -58,7 +58,7 @@ class UserServiceTest {
     void register_shouldTrimTheUsername() {
         when(repository.existsByUsernameIgnoreCase("Max")).thenReturn(false);
 
-        userService.register("  Max ", "1234");
+        userService.register("  Max ", "geheim1234");
 
         ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
         verify(repository).save(captor.capture());
@@ -69,7 +69,7 @@ class UserServiceTest {
     void register_shouldThrowIfUsernameEmpty() {
         InvalidUserDataException ex = assertThrows(
                 InvalidUserDataException.class,
-                () -> userService.register("   ", "1234")
+                () -> userService.register("   ", "geheim1234")
         );
         assertEquals("Der Benutzername darf nicht leer sein.", ex.getMessage());
         verify(repository, never()).save(any());
@@ -79,7 +79,7 @@ class UserServiceTest {
     void register_shouldThrowIfUsernameNull() {
         InvalidUserDataException ex = assertThrows(
                 InvalidUserDataException.class,
-                () -> userService.register(null, "1234")
+                () -> userService.register(null, "geheim1234")
         );
         assertEquals("Der Benutzername darf nicht leer sein.", ex.getMessage());
         verify(repository, never()).save(any());
@@ -89,7 +89,7 @@ class UserServiceTest {
     void register_shouldThrowIfUsernameTooLong() {
         String tooLong = "a".repeat(UserService.MAX_USERNAME_LENGTH + 1);
 
-        assertThrows(InvalidUserDataException.class, () -> userService.register(tooLong, "1234"));
+        assertThrows(InvalidUserDataException.class, () -> userService.register(tooLong, "geheim1234"));
         verify(repository, never()).save(any());
     }
 
@@ -97,7 +97,7 @@ class UserServiceTest {
     void register_shouldAcceptAUsernameOfTheMaximumLength() {
         String longest = "a".repeat(UserService.MAX_USERNAME_LENGTH);
 
-        userService.register(longest, "1234");
+        userService.register(longest, "geheim1234");
 
         verify(repository).save(any());
     }
@@ -106,10 +106,50 @@ class UserServiceTest {
     void register_shouldThrowIfPasswordTooShort() {
         InvalidUserDataException ex = assertThrows(
                 InvalidUserDataException.class,
-                () -> userService.register("Max", "123")
+                () -> userService.register("Max", "1234567")
         );
-        assertEquals("Das Passwort ist zu kurz.", ex.getMessage());
+        assertEquals("Das Passwort muss mindestens 8 Zeichen lang sein.", ex.getMessage());
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void register_shouldAcceptAPasswordOfExactlyTheMinimumLength() {
+        userService.register("Max", "a".repeat(UserService.MIN_PASSWORD_LENGTH));
+
+        verify(repository).save(any());
+    }
+
+    @Test
+    void register_shouldAcceptAPasswordOfExactlyTheMaximumLength() {
+        userService.register("Max", "a".repeat(UserService.MAX_PASSWORD_BYTES));
+
+        verify(repository).save(any());
+    }
+
+    @Test
+    void register_shouldRejectAPasswordBcryptCannotTake() {
+        InvalidUserDataException ex = assertThrows(InvalidUserDataException.class,
+                () -> userService.register("Max", "a".repeat(UserService.MAX_PASSWORD_BYTES + 1)));
+
+        assertTrue(ex.getMessage().contains("zu lang"));
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void register_shouldCountBytesNotCharactersForTheMaximum() {
+        // 37 Umlaute sind 37 Zeichen, aber 74 Bytes
+        String umlauts = "ä".repeat(37);
+
+        assertThrows(InvalidUserDataException.class, () -> userService.register("Max", umlauts));
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void register_shouldNotCountASpaceOnlyPasswordAsTooShort() {
+        // Nur die Länge zählt; Leerzeichen sind erlaubte Zeichen
+        userService.register("Max", "        ");
+
+        verify(repository).save(any());
     }
 
     @Test
@@ -118,7 +158,7 @@ class UserServiceTest {
                 InvalidUserDataException.class,
                 () -> userService.register("Max", null)
         );
-        assertEquals("Das Passwort ist zu kurz.", ex.getMessage());
+        assertEquals("Das Passwort muss mindestens 8 Zeichen lang sein.", ex.getMessage());
         verify(repository, never()).save(any());
     }
 
@@ -128,7 +168,7 @@ class UserServiceTest {
 
         UserAlreadyExistsException ex = assertThrows(
                 UserAlreadyExistsException.class,
-                () -> userService.register("Max", "1234")
+                () -> userService.register("Max", "geheim1234")
         );
         assertTrue(ex.getMessage().contains("Max"));
         verify(repository, never()).save(any());
@@ -139,7 +179,7 @@ class UserServiceTest {
         when(repository.existsByUsernameIgnoreCase("Max")).thenReturn(false);
         when(repository.save(any())).thenThrow(new DataIntegrityViolationException("ux_app_user_username_lower"));
 
-        assertThrows(UserAlreadyExistsException.class, () -> userService.register("Max", "1234"));
+        assertThrows(UserAlreadyExistsException.class, () -> userService.register("Max", "geheim1234"));
     }
 
     @Test
@@ -148,7 +188,7 @@ class UserServiceTest {
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         LocalDateTime before = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1);
 
-        AppUser saved = userService.register("Max", "1234");
+        AppUser saved = userService.register("Max", "geheim1234");
 
         assertFalse(saved.getCreatedAt().isBefore(before));
         assertFalse(saved.getCreatedAt().isAfter(LocalDateTime.now(ZoneOffset.UTC).plusSeconds(1)));

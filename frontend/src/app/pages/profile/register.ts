@@ -19,7 +19,7 @@ export class Register {
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     username: ['', [Validators.required, Validators.maxLength(30)]],
-    password: ['', [Validators.required, Validators.minLength(4)]],
+    password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
   });
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
