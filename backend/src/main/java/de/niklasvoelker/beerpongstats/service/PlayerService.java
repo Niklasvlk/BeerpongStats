@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+// Alle Methoden arbeiten innerhalb einer Gruppe; ob der Aufrufer Mitglied ist, prüft schon der GroupAccessInterceptor
 @Service
 public class PlayerService {
 
@@ -19,33 +20,33 @@ public class PlayerService {
         this.repository = repository;
     }
 
-    public List<Player> getLeaderboard() {
+    public List<Player> getLeaderboard(Long groupId) {
         Pageable top10 = PageRequest.of(0, 10);
-        return repository.findTopPlayersByWinrate(10, top10);
+        return repository.findTopPlayersByWinrate(groupId, 10, top10);
     }
 
-    public List<Player> getAllPlayers() {
-        return repository.findAll();
+    public List<Player> getAllPlayers(Long groupId) {
+        return repository.findByGroupId(groupId, Sort.unsorted());
     }
 
-    public Player getPlayerById(Long id) {
-        return repository.findById(id)
+    public Player getPlayerById(Long groupId, Long id) {
+        return repository.findByIdAndGroupId(id, groupId)
                 .orElseThrow(() -> new PlayerNotFoundByIDException(id));
     }
 
-    public List<Player> findByNameContaining(String name) {
-        return repository.findByNameContainingIgnoreCase(name);
+    public List<Player> findByNameContaining(Long groupId, String name) {
+        return repository.findByGroupIdAndNameContainingIgnoreCase(groupId, name);
     }
 
-    public List<Player> getAllPlayersSortedByWinRate() {
-        return repository.findAll(Sort.by(Sort.Direction.DESC, "winRate"));
+    public List<Player> getAllPlayersSortedByWinRate(Long groupId) {
+        return repository.findByGroupId(groupId, Sort.by(Sort.Direction.DESC, "winRate"));
     }
 
-    public List<Player> getAllPlayersSortedByAvgCups() {
-        return repository.findAll(Sort.by(Sort.Direction.DESC, "avgCups"));
+    public List<Player> getAllPlayersSortedByAvgCups(Long groupId) {
+        return repository.findByGroupId(groupId, Sort.by(Sort.Direction.DESC, "avgCups"));
     }
 
-    public List<Player> getAllPlayersSortedByName() {
-        return repository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+    public List<Player> getAllPlayersSortedByName(Long groupId) {
+        return repository.findByGroupId(groupId, Sort.by(Sort.Direction.ASC, "name"));
     }
 }

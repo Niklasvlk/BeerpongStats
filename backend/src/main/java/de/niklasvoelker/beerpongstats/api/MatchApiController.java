@@ -10,7 +10,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/matches")
+// Der GroupAccessInterceptor lässt nur Mitglieder der Gruppe an diese Endpoints
+@RequestMapping("/api/groups/{groupId}/matches")
 public class MatchApiController {
 
     private final MatchService matchService;
@@ -20,25 +21,25 @@ public class MatchApiController {
     }
 
     @GetMapping
-    public List<MatchResponse> listMatches() {
-        return matchService.getAllMatches().stream().map(MatchResponse::from).toList();
+    public List<MatchResponse> listMatches(@PathVariable Long groupId) {
+        return matchService.getAllMatches(groupId).stream().map(MatchResponse::from).toList();
     }
 
     @GetMapping("/recent")
-    public List<MatchResponse> recentMatches() {
-        return matchService.getRecentMatches().stream().map(MatchResponse::from).toList();
+    public List<MatchResponse> recentMatches(@PathVariable Long groupId) {
+        return matchService.getRecentMatches(groupId).stream().map(MatchResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    public MatchResponse getMatch(@PathVariable Long id) {
-        return matchService.getMatchById(id)
+    public MatchResponse getMatch(@PathVariable Long groupId, @PathVariable Long id) {
+        return matchService.getMatchById(groupId, id)
                 .map(MatchResponse::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match nicht gefunden: " + id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public MatchResponse createMatch(@RequestBody MatchDTO request) {
-        return MatchResponse.from(matchService.createMatch(request));
+    public MatchResponse createMatch(@PathVariable Long groupId, @RequestBody MatchDTO request) {
+        return MatchResponse.from(matchService.createMatch(groupId, request));
     }
 }

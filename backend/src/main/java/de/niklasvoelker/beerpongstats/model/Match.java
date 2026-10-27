@@ -15,6 +15,12 @@ public class Match {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "group_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private PongGroup group;
+
     // Gewinner-Team
     @ManyToOne
     @JoinColumn(name = "winner1_id", nullable = false)

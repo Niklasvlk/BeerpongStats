@@ -4,6 +4,7 @@ import de.niklasvoelker.beerpongstats.exception.DuplicateMatchException;
 import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByNameException;
 import de.niklasvoelker.beerpongstats.model.Match;
 import de.niklasvoelker.beerpongstats.model.Player;
+import de.niklasvoelker.beerpongstats.repository.GroupRepository;
 import de.niklasvoelker.beerpongstats.repository.MatchRepository;
 import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
 import de.niklasvoelker.beerpongstats.dto.MatchDTO;
@@ -22,22 +23,26 @@ public class MatchService {
 
     private final MatchRepository matchRepository;
     private final PlayerRepository playerRepository;
+    private final GroupRepository groupRepository;
 
-    public MatchService(MatchRepository matchRepository, PlayerRepository playerRepository) {
+    public MatchService(MatchRepository matchRepository, PlayerRepository playerRepository,
+                        GroupRepository groupRepository) {
         this.matchRepository = matchRepository;
         this.playerRepository = playerRepository;
+        this.groupRepository = groupRepository;
     }
 
     @Transactional
-    public Match createMatch(MatchDTO dto) {
+    public Match createMatch(Long groupId, MatchDTO dto) {
 
         validateMatchDTO(dto);
 
-        Player winner1 = getPlayerByName(dto.getWinner1());
-        Player winner2 = getOptionalPlayer(dto.getWinner2());
+        // Spieler werden nur in dieser Gruppe gesucht, ein Match kann also nie Gruppen mischen
+        Player winner1 = getPlayerByName(groupId, dto.getWinner1());
+        Player winner2 = getOptionalPlayer(groupId, dto.getWinner2());
 
-        Player loser1 = getPlayerByName(dto.getLoser1());
-        Player loser2 = getOptionalPlayer(dto.getLoser2());
+        Player loser1 = getPlayerByName(groupId, dto.getLoser1());
+        Player loser2 = getOptionalPlayer(groupId, dto.getLoser2());
 
         validateNoDuplicatePlayers(winner1, winner2, loser1, loser2);
         validateTeamConsistency(winner2, loser2);
@@ -62,6 +67,7 @@ public class MatchService {
         }
 
         Match match = Match.builder()
+                .group(groupRepository.getReferenceById(groupId))
                 .winner1(winner1)
                 .winner2(winner2)
                 .loser1(loser1)
@@ -84,16 +90,16 @@ public class MatchService {
         return saved;
     }
 
-    public List<Match> getRecentMatches() {
-        return matchRepository.findTop10ByOrderByPlayedAtDesc();
+    public List<Match> getRecentMatches(Long groupId) {
+        return matchRepository.findTop10ByGroupIdOrderByPlayedAtDesc(groupId);
     }
 
-    public List<Match> getAllMatches() {
-        return matchRepository.findAllByOrderByPlayedAtDesc();
+    public List<Match> getAllMatches(Long groupId) {
+        return matchRepository.findAllByGroupIdOrderByPlayedAtDesc(groupId);
     }
 
-    public Optional<Match> getMatchById(Long id) {
-        return matchRepository.findById(id);
+    public Optional<Match> getMatchById(Long groupId, Long id) {
+        return matchRepository.findByIdAndGroupId(id, groupId);
     }
 
     // Hilfsmethode
@@ -145,16 +151,16 @@ public class MatchService {
         }
     }
 
-    private Player getPlayerByName(String name) {
-        return playerRepository.findByNameIgnoreCase(name)
+    private Player getPlayerByName(Long groupId, String name) {
+        return playerRepository.findByGroupIdAndNameIgnoreCase(groupId, name)
                 .orElseThrow(() -> new PlayerNotFoundByNameException(name));
     }
 
-    private Player getOptionalPlayer(String name) {
+    private Player getOptionalPlayer(Long groupId, String name) {
         if (name == null || name.isBlank()) {
             return null;
         }
-        return getPlayerByName(name);
+        return getPlayerByName(groupId, name);
     }
 
     private void validateNoDuplicatePlayers(Player... players) {

@@ -29,21 +29,30 @@ class PlayerServiceTest {
         player.setId(1L);
         player.setName("Max");
 
-        when(repository.findById(1L)).thenReturn(Optional.of(player));
+        when(repository.findByIdAndGroupId(1L, 5L)).thenReturn(Optional.of(player));
 
-        Player result = playerService.getPlayerById(1L);
+        Player result = playerService.getPlayerById(5L, 1L);
 
         assertEquals("Max", result.getName());
-        verify(repository).findById(1L);
+        verify(repository).findByIdAndGroupId(1L, 5L);
+    }
+
+    @Test
+    void getPlayerById_shouldNotFindAPlayerOfAnotherGroup() {
+        when(repository.findByIdAndGroupId(1L, 6L)).thenReturn(Optional.empty());
+
+        assertThrows(PlayerNotFoundByIDException.class, () -> playerService.getPlayerById(6L, 1L));
+
+        verify(repository, never()).findById(any());
     }
 
     @Test
     void getPlayerById_shouldThrowIfNotFound() {
-        when(repository.findById(1L)).thenReturn(Optional.empty());
+        when(repository.findByIdAndGroupId(1L, 5L)).thenReturn(Optional.empty());
 
         assertThrows(PlayerNotFoundByIDException.class,
-                () -> playerService.getPlayerById(1L));
+                () -> playerService.getPlayerById(5L, 1L));
 
-        verify(repository).findById(1L);
+        verify(repository).findByIdAndGroupId(1L, 5L);
     }
 }

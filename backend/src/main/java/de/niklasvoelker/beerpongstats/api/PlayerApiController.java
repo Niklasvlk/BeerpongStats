@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+// Der GroupAccessInterceptor lässt nur Mitglieder der Gruppe an diese Endpoints
+@RequestMapping("/api/groups/{groupId}")
 public class PlayerApiController {
 
     private final PlayerService playerService;
@@ -18,34 +19,34 @@ public class PlayerApiController {
     }
 
     @GetMapping("/leaderboard")
-    public List<PlayerResponse> leaderboard() {
-        return playerService.getLeaderboard().stream().map(PlayerResponse::from).toList();
+    public List<PlayerResponse> leaderboard(@PathVariable Long groupId) {
+        return playerService.getLeaderboard(groupId).stream().map(PlayerResponse::from).toList();
     }
 
     @GetMapping("/players")
-    public List<PlayerResponse> listPlayers(@RequestParam(required = false) String sort) {
+    public List<PlayerResponse> listPlayers(@PathVariable Long groupId, @RequestParam(required = false) String sort) {
         List<Player> players;
 
         if ("winrate".equalsIgnoreCase(sort)) {
-            players = playerService.getAllPlayersSortedByWinRate();
+            players = playerService.getAllPlayersSortedByWinRate(groupId);
         } else if ("avgCups".equalsIgnoreCase(sort)) {
-            players = playerService.getAllPlayersSortedByAvgCups();
+            players = playerService.getAllPlayersSortedByAvgCups(groupId);
         } else if ("name".equalsIgnoreCase(sort)) {
-            players = playerService.getAllPlayersSortedByName();
+            players = playerService.getAllPlayersSortedByName(groupId);
         } else {
-            players = playerService.getAllPlayers();
+            players = playerService.getAllPlayers(groupId);
         }
 
         return players.stream().map(PlayerResponse::from).toList();
     }
 
     @GetMapping("/players/search")
-    public List<PlayerResponse> search(@RequestParam String name) {
-        return playerService.findByNameContaining(name).stream().map(PlayerResponse::from).toList();
+    public List<PlayerResponse> search(@PathVariable Long groupId, @RequestParam String name) {
+        return playerService.findByNameContaining(groupId, name).stream().map(PlayerResponse::from).toList();
     }
 
     @GetMapping("/players/{id}")
-    public PlayerResponse getPlayer(@PathVariable Long id) {
-        return PlayerResponse.from(playerService.getPlayerById(id));
+    public PlayerResponse getPlayer(@PathVariable Long groupId, @PathVariable Long id) {
+        return PlayerResponse.from(playerService.getPlayerById(groupId, id));
     }
 }

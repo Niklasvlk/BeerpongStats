@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.servlet.resource.CachingResourceResolver;
@@ -20,6 +21,10 @@ class WebConfigTest {
 
     @Autowired
     private HandlerMapping resourceHandlerMapping;
+
+    // Die Interceptor-Konfiguration für die Gruppen wird im Slice mitgeladen und braucht diese Abhängigkeit
+    @MockitoBean
+    private GroupAccess groupAccess;
 
     @Test
     void spaFallbackIsNotCached() {
