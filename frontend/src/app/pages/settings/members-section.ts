@@ -48,7 +48,13 @@ export class MembersSection {
   private run(request: Observable<unknown>): void {
     this.error.set(null);
     request.subscribe({
-      next: () => this.members.reload(),
+      next: () => {
+        this.members.reload();
+        // Die eigene Rolle kann sich geändert haben (ein Admin kann sich selbst herabstufen), und die Mitgliederzahl
+        // stimmt nicht mehr. Mit der alten Gruppenliste zeigte die Seite weiter Admin-Bereiche, deren Aktionen dann mit
+        // 403 scheitern. Schlägt das Neuladen fehl, bleibt der bisherige Stand und die Seite funktioniert weiter.
+        this.groups.load().subscribe({ error: () => undefined });
+      },
       error: (err) => this.error.set(errorMessage(err)),
     });
   }

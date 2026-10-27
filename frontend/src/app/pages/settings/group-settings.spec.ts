@@ -46,6 +46,7 @@ const invitation = (id: number, status: Invitation['status'], uses = 0, maxUses:
 });
 
 const noContent = { status: 204, statusText: 'No Content' };
+const serverError = { status: 500, statusText: 'Server Error' };
 
 describe('group settings', () => {
   let http: HttpTestingController;
@@ -140,6 +141,7 @@ describe('group settings', () => {
     const req = http.expectOne({ method: 'PATCH', url: '/api/groups/7/members/2' });
     expect(req.request.body).toEqual({ role: 'ADMIN' });
     req.flush({ ...bob, role: 'ADMIN' });
+    http.expectOne('/api/groups').flush([admin]);
     (await expectReload('/api/groups/7/members')).flush([alice, { ...bob, role: 'ADMIN' }]);
     await settle();
 
@@ -154,6 +156,58 @@ describe('group settings', () => {
     http.match('/api/groups/7/members');
   });
 
+  it('an admin who demotes themselves loses the admin sections right away', async () => {
+    await open(admin, [alice, { ...bob, role: 'ADMIN' }]);
+    expect(text()).toContain('Invitations');
+    expect(button('Gruppe löschen')).toBeDefined();
+
+    // Die erste Zeile ist die eigene (Alice, Spieler 1)
+    click('Zum Mitglied machen');
+    http.expectOne({ method: 'PATCH', url: '/api/groups/7/members/1' }).flush({ ...alice, role: 'MEMBER' });
+    http.expectOne('/api/groups').flush([{ ...admin, role: 'MEMBER' }]);
+    (await expectReload('/api/groups/7/members')).flush([{ ...alice, role: 'MEMBER' }, { ...bob, role: 'ADMIN' }]);
+    await settle();
+
+    expect(TestBed.inject(GroupApi).groups()[0].role).toBe('MEMBER');
+    expect(text()).not.toContain('Invitations');
+    expect(button('Create Invitation Link')).toBeUndefined();
+    expect(button('Gruppe löschen')).toBeUndefined();
+    expect(button('Umbenennen')).toBeUndefined();
+    expect(button('Gruppe verlassen')).toBeDefined();
+    // Auch bei den Mitgliedern gibt es keine Verwaltungs-Buttons mehr
+    expect(button('Zum Mitglied machen')).toBeUndefined();
+    expect(button('Zum Admin machen')).toBeUndefined();
+  });
+
+  it('keeps working when the groups cannot be reloaded after a change', async () => {
+    await open(admin, [alice, bob]);
+
+    click('Zum Admin machen');
+    http.expectOne({ method: 'PATCH', url: '/api/groups/7/members/2' }).flush({ ...bob, role: 'ADMIN' });
+    http.expectOne('/api/groups').flush(null, serverError);
+    (await expectReload('/api/groups/7/members')).flush([alice, { ...bob, role: 'ADMIN' }]);
+    await settle();
+
+    // Die Mitgliederliste ist aktuell, es steht kein Fehler da, und die bisherige Gruppenliste bleibt erhalten
+    expect(Array.from(root().querySelectorAll('button')).filter((b) => b.textContent?.includes('Zum Mitglied machen'))).toHaveLength(2);
+    expect(text()).not.toContain('konnten nicht geladen werden');
+    expect(TestBed.inject(GroupApi).groups()).toHaveLength(1);
+  });
+
+  it('a refused role change does not touch the group list', async () => {
+    await open(admin, [alice]);
+
+    click('Zum Mitglied machen');
+    http.expectOne('/api/groups/7/members/1').flush(
+      { status: 409, title: 'Conflict', detail: 'Die Gruppe braucht mindestens einen Admin.' },
+      { status: 409, statusText: 'Conflict' },
+    );
+    await settle();
+
+    http.expectNone('/api/groups');
+    expect(TestBed.inject(GroupApi).groups()[0].role).toBe('ADMIN');
+  });
+
   it('removing a member asks first and then reloads the list', async () => {
     await open(admin, [alice, bob]);
     const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -161,11 +215,14 @@ describe('group settings', () => {
     click('Entfernen');
     expect(confirmation).toHaveBeenCalled();
     http.expectOne({ method: 'DELETE', url: '/api/groups/7/members/2' }).flush(null, noContent);
+    // Die Mitgliederzahl der Gruppe hat sich geändert
+    http.expectOne('/api/groups').flush([{ ...admin, memberCount: 2 }]);
     (await expectReload('/api/groups/7/members')).flush([alice, { ...bob, active: false }]);
     await settle();
 
     expect(button('Entfernen')).toBeUndefined();
     expect(text()).toContain('ehemalig');
+    expect(TestBed.inject(GroupApi).groups()[0].memberCount).toBe(2);
   });
 
   it('cancelling the confirmation removes nobody', async () => {
