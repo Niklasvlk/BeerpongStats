@@ -59,6 +59,17 @@ Hinter einem Proxy (z. B. Render) zählt es nach der Adresse aus `X-Forwarded-Fo
 `server.forward-headers-strategy=native` gesetzt sein (ist es). Passwörter müssen mindestens 8 Zeichen lang sein
 (höchstens 72 Bytes, mehr verarbeitet BCrypt nicht).
 
+## Vor dem Öffnen für Fremde
+
+- **Impressum und Datenschutzerklärung:** Die Seiten `/impressum` und `/datenschutz` sind als Entwurf vorbereitet. Name,
+  Anschrift, E-Mail, Hosting-Anbieter und Datum stehen an **einer** Stelle: `frontend/src/app/shared/operator.ts`. Solange
+  dort noch Platzhalter in eckigen Klammern stehen, zeigen beide Seiten einen Entwurfs-Hinweis und markieren die offenen
+  Stellen gelb; beides verschwindet von selbst, sobald alles ausgefüllt ist. Der Text beschreibt, was die App tatsächlich
+  speichert und setzt, ist aber keine Rechtsberatung. Wird später ein Passwort-Reset mit E-Mail eingebaut, muss er
+  ergänzt werden.
+- **Schrift:** Inter wird mit der App ausgeliefert (`@fontsource/inter`). Es werden keine Inhalte von fremden Servern
+  geladen, damit keine IP-Adressen an Dritte gehen.
+
 ## Tests
 
 ```bash

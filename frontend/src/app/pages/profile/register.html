@@ -28,6 +28,11 @@
   </form>
 
   <p class="muted auth-hint">
+    Mit der Registrierung speichern wir deinen Benutzernamen und dein Passwort (nur als Hash). Mehr dazu in der
+    <a routerLink="/datenschutz">Datenschutzerklärung</a>.
+  </p>
+
+  <p class="muted auth-hint">
     Schon einen Account?
     <a routerLink="/login" [queryParams]="{ returnUrl: returnUrl() }">Zum Login</a>
   </p>

@@ -5,6 +5,8 @@ import { startGuard } from './start-guard';
 import { NewMatch } from './pages/forms/new-match';
 import { GroupList } from './pages/groups/group-list';
 import { Home } from './pages/home/home';
+import { Datenschutz } from './pages/legal/datenschutz';
+import { Impressum } from './pages/legal/impressum';
 import { Join } from './pages/join/join';
 import { Landing } from './pages/landing/landing';
 import { MatchDetails } from './pages/matches/match-details';
@@ -39,5 +41,8 @@ export const routes: Routes = [
     ],
   },
   { path: 'profile', component: Profile, canActivate: [authGuard] },
+  // Müssen ohne Login erreichbar sein, auch von der Registrierung aus
+  { path: 'impressum', component: Impressum },
+  { path: 'datenschutz', component: Datenschutz },
   { path: '**', redirectTo: '' },
 ];

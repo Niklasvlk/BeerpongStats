@@ -225,7 +225,9 @@ Jede Etappe endet in einem lauffähigen, getesteten Stand (`./gradlew test`, `np
 **Stand Etappe 5 (teilweise umgesetzt):** Rate Limiting und Passwort-Mindestlänge.
 - Der `RateLimitFilter` begrenzt `POST /api/auth/login`, `/api/auth/register` und `/api/invitations/{token}/accept` pro Client-Adresse (IPv6 pro /64-Netz). Zusätzlich sperrt der Login nach zu vielen Fehlversuchen einen Benutzernamen, egal von welcher Adresse; unbekannte Namen zählen genauso. Zustand im Speicher (`SlidingWindowLimiter`), einstellbar über `beerpong.rate-limit.*`.
 - Passwörter brauchen mindestens 8 Zeichen und höchstens 72 Bytes (BCrypt-Grenze), im Backend und im Registrierungsformular.
-- Noch offen aus Etappe 5: Impressum und Datenschutz, Handler für abgelaufene Sessions im Frontend, Produktions-DB leeren und Smoke-Test.
+- Impressum (`/impressum`) und Datenschutzerklärung (`/datenschutz`) sind als Entwurf mit Platzhaltern vorbereitet, Links im Footer und bei der Registrierung. Die Angaben des Betreibers stehen in `frontend/src/app/shared/operator.ts`; solange Platzhalter offen sind, zeigen die Seiten einen Hinweis.
+- Die Schrift Inter wird selbst ausgeliefert (`@fontsource/inter`) statt von Google Fonts geladen; die App lädt nichts mehr von fremden Servern.
+- Noch offen aus Etappe 5: Betreiberangaben eintragen, Handler für abgelaufene Sessions im Frontend, Produktions-DB leeren und Smoke-Test.
 
 **Etappe 5: Absicherung und Rollout**
 - Rate Limiting auf Login, Registrierung und `accept` (z. B. Bucket4j oder ein einfacher IP-basierter Filter), Passwort-Mindestlänge von 4 auf 8, Username-Regeln (Länge, erlaubte Zeichen).

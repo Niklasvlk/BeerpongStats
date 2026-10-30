@@ -1,0 +1,23 @@
+<section class="legal">
+  <h2>Impressum</h2>
+  <app-draft-banner />
+
+  <h3>Angaben nach § 5 DDG</h3>
+  <p>
+    <span [class.placeholder]="isPlaceholder(operator.name)">{{ operator.name }}</span><br />
+    <span [class.placeholder]="isPlaceholder(operator.street)">{{ operator.street }}</span><br />
+    <span [class.placeholder]="isPlaceholder(operator.city)">{{ operator.city }}</span>
+  </p>
+
+  <h3>Kontakt</h3>
+  <p>
+    E-Mail:
+    <span [class.placeholder]="isPlaceholder(operator.email)">{{ operator.email }}</span>
+  </p>
+
+  <h3>Hinweis</h3>
+  <p class="muted">
+    BeerpongStats ist ein privates Projekt für Statistiken unter Freunden. Wie mit den Daten umgegangen wird, steht in
+    der <a routerLink="/datenschutz">Datenschutzerklärung</a>.
+  </p>
+</section>

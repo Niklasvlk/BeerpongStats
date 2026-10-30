@@ -38,6 +38,18 @@ describe('App', () => {
     http.expectOne('/api/groups').flush(groups);
   };
 
+  it('always links the imprint and the privacy policy, signed in or not', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const footer = () => Array.from(root(fixture).querySelectorAll('footer a')).map((a) => a.getAttribute('href'));
+    expect(footer()).toEqual(['/impressum', '/datenschutz']);
+
+    signIn([]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(footer()).toEqual(['/impressum', '/datenschutz']);
+  });
+
   it('offers login and registration while nobody is signed in', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();

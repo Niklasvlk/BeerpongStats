@@ -1,3 +1,9 @@
+/* Die Schrift kommt aus der App selbst und nicht von einem Schriftendienst: Beim Laden von Google Fonts ginge die
+   IP-Adresse jedes Besuchers an Google. Nur der lateinische Zeichensatz (enthält Umlaute und ß). */
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+
 /* RESET */
 * {
     margin: 0;
@@ -619,4 +625,75 @@ button.btn-secondary {
 
 .invite-link .form-row .btn-secondary {
     padding: 10px 14px;
+}
+
+/* RECHTLICHES */
+.footer {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px 8% 32px;
+    font-size: 14px;
+}
+
+.footer a {
+    color: #64748b;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: #2563eb;
+}
+
+.legal {
+    max-width: 760px;
+}
+
+.legal h3 {
+    margin: 28px 0 8px;
+    font-size: 18px;
+}
+
+.legal h4 {
+    margin: 18px 0 6px;
+    font-size: 15px;
+}
+
+.legal p,
+.legal li {
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.legal ul {
+    padding-left: 22px;
+}
+
+.legal a {
+    color: #2563eb;
+}
+
+.legal code,
+.draft-banner code {
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* Noch nicht ausgefüllte Angaben (siehe shared/operator.ts) */
+.placeholder {
+    background: #fef08a;
+    padding: 0 4px;
+    border-radius: 3px;
+}
+
+.draft-banner {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
 }
