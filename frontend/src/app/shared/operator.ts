@@ -21,7 +21,7 @@ export type Operator = typeof OPERATOR;
 
 // Ein Platzhalter ist alles, was noch in eckigen Klammern steht
 export function isPlaceholder(value: string): boolean {
-  return /^\[.*\]$/.test(value.trim());
+  return /^\[.*]$/.test(value.trim());
 }
 
 export function hasPlaceholders(operator: Operator = OPERATOR): boolean {

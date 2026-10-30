@@ -394,7 +394,7 @@ section + section {
 
 /* Größere, statische Error Card */
 .error-card {
-    background: var(--card-bg);
+    background: white;
     padding: 3rem;
     border-radius: 16px;
     max-width: 650px;
