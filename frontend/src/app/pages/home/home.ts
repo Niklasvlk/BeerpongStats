@@ -1,5 +1,5 @@
 import { PercentPipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatchApi } from '../../api/match-api';
@@ -17,8 +17,18 @@ export class Home {
   private readonly playerApi = inject(PlayerApi);
   private readonly matchApi = inject(MatchApi);
 
-  protected readonly leaderboard = rxResource({ stream: () => this.playerApi.leaderboard() });
-  protected readonly recentMatches = rxResource({ stream: () => this.matchApi.recent() });
+  // Route-Parameter :groupId der Eltern-Route
+  readonly groupId = input.required<string>();
+  protected readonly group = computed(() => Number(this.groupId()));
+
+  protected readonly leaderboard = rxResource({
+    params: () => this.group(),
+    stream: ({ params }) => this.playerApi.leaderboard(params),
+  });
+  protected readonly recentMatches = rxResource({
+    params: () => this.group(),
+    stream: ({ params }) => this.matchApi.recent(params),
+  });
   protected readonly players = listValue(this.leaderboard);
   protected readonly matches = listValue(this.recentMatches);
   protected readonly winRateColor = winRateColor;

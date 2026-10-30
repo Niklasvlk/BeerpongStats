@@ -1,0 +1,28 @@
+<section>
+  <h2>Group</h2>
+
+  <div class="form-card">
+    @if (isAdmin()) {
+      <form [formGroup]="form" (ngSubmit)="rename()">
+        <div class="form-row">
+          <input type="text" formControlName="name" placeholder="Name der Gruppe" (input)="renamed.set(false)" />
+          <button type="submit" class="btn-primary" [disabled]="form.invalid || form.pristine">Umbenennen</button>
+        </div>
+      </form>
+      @if (renamed()) {
+        <p class="muted">Gespeichert.</p>
+      }
+    }
+
+    <div>
+      <button type="button" class="btn-secondary" (click)="leave()">Gruppe verlassen</button>
+      @if (isAdmin()) {
+        <button type="button" class="btn-danger" style="margin-left: 8px;" (click)="deleteGroup()">Gruppe löschen</button>
+      }
+    </div>
+
+    @if (error(); as message) {
+      <p class="error-text">{{ message }}</p>
+    }
+  </div>
+</section>

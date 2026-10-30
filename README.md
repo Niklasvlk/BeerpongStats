@@ -23,7 +23,6 @@ cd backend
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/beerpongdb \
 SPRING_DATASOURCE_USERNAME=beerpong \
 SPRING_DATASOURCE_PASSWORD=beerpong123 \
-SPRING_JPA_HIBERNATE_DDL_AUTO=update \
 ./gradlew bootRun
 ```
 
@@ -36,6 +35,40 @@ npm start
 ```
 
 Dann http://localhost:4200 öffnen.
+
+## Konfiguration
+
+Die Werte stehen in `backend/src/main/resources/application.properties` und lassen sich wie jede Spring-Property über
+Umgebungsvariablen überschreiben (z. B. `BEERPONG_RATE_LIMIT_LOGIN_PER_MINUTE=20`).
+
+| Property | Standard | Bedeutung |
+|---|---|---|
+| `beerpong.limits.max-groups-per-user` | 20 | Gruppen, in denen ein Account Mitglied sein kann |
+| `beerpong.limits.max-members-per-group` | 100 | Mitglieder (Spieler mit Account) einer Gruppe |
+| `beerpong.rate-limit.enabled` | true | Rate Limiting an oder aus |
+| `beerpong.rate-limit.login-per-minute` | 20 | Login-Versuche pro Minute und Client-Adresse |
+| `beerpong.rate-limit.register-per-hour` | 40 | Registrierungen pro Stunde und Client-Adresse |
+| `beerpong.rate-limit.join-per-minute` | 20 | Beitritte über Einladungslinks pro Minute und Client-Adresse |
+| `beerpong.rate-limit.failed-logins-per-username` | 10 | Falsche Passwörter pro 15 Minuten und Benutzername, von jeder Adresse |
+
+Die Grenzen pro Adresse sind großzügig, weil sich auf einer Party oder im Mobilfunk viele Leute eine Adresse teilen. Das
+gezielte Raten gegen einen Account bremst die Sperre pro Benutzername, unabhängig von der Adresse.
+
+Das Rate Limiting zählt im Speicher: Es gilt nur für die laufende Instanz und beginnt nach einem Neustart von vorn.
+Hinter einem Proxy (z. B. Render) zählt es nach der Adresse aus `X-Forwarded-For`; dafür muss
+`server.forward-headers-strategy=native` gesetzt sein (ist es). Passwörter müssen mindestens 8 Zeichen lang sein
+(höchstens 72 Bytes, mehr verarbeitet BCrypt nicht).
+
+## Vor dem Öffnen für Fremde
+
+- **Impressum und Datenschutzerklärung:** Die Seiten `/impressum` und `/datenschutz` sind als Entwurf vorbereitet. Name,
+  Anschrift, E-Mail, Hosting-Anbieter und Datum stehen an **einer** Stelle: `frontend/src/app/shared/operator.ts`. Solange
+  dort noch Platzhalter in eckigen Klammern stehen, zeigen beide Seiten einen Entwurfs-Hinweis und markieren die offenen
+  Stellen gelb; beides verschwindet von selbst, sobald alles ausgefüllt ist. Der Text beschreibt, was die App tatsächlich
+  speichert und setzt, ist aber keine Rechtsberatung. Wird später ein Passwort-Reset mit E-Mail eingebaut, muss er
+  ergänzt werden.
+- **Schrift:** Inter wird mit der App ausgeliefert (`@fontsource/inter`). Es werden keine Inhalte von fremden Servern
+  geladen, damit keine IP-Adressen an Dritte gehen.
 
 ## Tests
 

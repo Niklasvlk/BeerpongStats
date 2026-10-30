@@ -23,7 +23,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/beerpongdb
       SPRING_DATASOURCE_USERNAME: beerpong
       SPRING_DATASOURCE_PASSWORD: beerpong123
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_PROFILES_ACTIVE: prod
     restart: unless-stopped
 

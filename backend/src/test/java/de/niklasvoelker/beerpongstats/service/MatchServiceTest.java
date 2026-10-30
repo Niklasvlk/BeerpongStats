@@ -4,6 +4,8 @@ import de.niklasvoelker.beerpongstats.dto.MatchDTO;
 import de.niklasvoelker.beerpongstats.exception.PlayerNotFoundByNameException;
 import de.niklasvoelker.beerpongstats.model.Match;
 import de.niklasvoelker.beerpongstats.model.Player;
+import de.niklasvoelker.beerpongstats.model.PongGroup;
+import de.niklasvoelker.beerpongstats.repository.GroupRepository;
 import de.niklasvoelker.beerpongstats.repository.MatchRepository;
 import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,16 +30,24 @@ class MatchServiceTest {
     @Mock
     private MatchRepository matchRepository;
 
+    @Mock
+    private GroupRepository groupRepository;
+
     @InjectMocks
     private MatchService matchService;
+
+    private static final Long GROUP_ID = 1L;
 
     private Player playerA;
     private Player playerB;
     private Player playerC;
     private Player playerD;
+    private PongGroup group;
 
     @BeforeEach
     void setUp() {
+        group = PongGroup.builder().id(GROUP_ID).name("Kumpels").build();
+        lenient().when(groupRepository.getReferenceById(GROUP_ID)).thenReturn(group);
         playerA = new Player(); playerA.setName("A");
         playerB = new Player(); playerB.setName("B");
         playerC = new Player(); playerC.setName("C");
@@ -52,10 +62,10 @@ class MatchServiceTest {
         dto.setWinner1Cups(3);
         dto.setLoser1Cups(1);
 
-        when(playerRepository.findByNameIgnoreCase("A")).thenReturn(Optional.of(playerA));
-        when(playerRepository.findByNameIgnoreCase("B")).thenReturn(Optional.of(playerB));
+        when(playerRepository.findByGroupIdAndNameIgnoreCase(GROUP_ID, "A")).thenReturn(Optional.of(playerA));
+        when(playerRepository.findByGroupIdAndNameIgnoreCase(GROUP_ID, "B")).thenReturn(Optional.of(playerB));
 
-        matchService.createMatch(dto);
+        matchService.createMatch(GROUP_ID, dto);
 
         // Prüfen, dass Match gespeichert wurde
         ArgumentCaptor<Match> captor = ArgumentCaptor.forClass(Match.class);
@@ -64,6 +74,7 @@ class MatchServiceTest {
 
         assertEquals(playerA, savedMatch.getWinner1());
         assertEquals(playerB, savedMatch.getLoser1());
+        assertSame(group, savedMatch.getGroup());
         assertNull(savedMatch.getWinner2());
         assertNull(savedMatch.getLoser2());
 
@@ -90,12 +101,12 @@ class MatchServiceTest {
         dto.setLoser1Cups(1);
         dto.setLoser2Cups(0);
 
-        when(playerRepository.findByNameIgnoreCase("A")).thenReturn(Optional.of(playerA));
-        when(playerRepository.findByNameIgnoreCase("B")).thenReturn(Optional.of(playerB));
-        when(playerRepository.findByNameIgnoreCase("C")).thenReturn(Optional.of(playerC));
-        when(playerRepository.findByNameIgnoreCase("D")).thenReturn(Optional.of(playerD));
+        when(playerRepository.findByGroupIdAndNameIgnoreCase(GROUP_ID, "A")).thenReturn(Optional.of(playerA));
+        when(playerRepository.findByGroupIdAndNameIgnoreCase(GROUP_ID, "B")).thenReturn(Optional.of(playerB));
+        when(playerRepository.findByGroupIdAndNameIgnoreCase(GROUP_ID, "C")).thenReturn(Optional.of(playerC));
+        when(playerRepository.findByGroupIdAndNameIgnoreCase(GROUP_ID, "D")).thenReturn(Optional.of(playerD));
 
-        matchService.createMatch(dto);
+        matchService.createMatch(GROUP_ID, dto);
 
         ArgumentCaptor<Match> captor = ArgumentCaptor.forClass(Match.class);
         verify(matchRepository).save(captor.capture());
@@ -128,10 +139,10 @@ class MatchServiceTest {
         dto.setWinner1Cups(3);
         dto.setLoser1Cups(1);
 
-        when(playerRepository.findByNameIgnoreCase("A")).thenReturn(Optional.empty());
+        when(playerRepository.findByGroupIdAndNameIgnoreCase(GROUP_ID, "A")).thenReturn(Optional.empty());
 
         assertThrows(PlayerNotFoundByNameException.class,
-                () -> matchService.createMatch(dto));
+                () -> matchService.createMatch(GROUP_ID, dto));
     }
 
     @Test
@@ -141,7 +152,7 @@ class MatchServiceTest {
         dto.setLoser1("A"); // gleiche Person
 
         assertThrows(IllegalArgumentException.class,
-                () -> matchService.createMatch(dto));
+                () -> matchService.createMatch(GROUP_ID, dto));
     }
 
     @Test
@@ -158,6 +169,6 @@ class MatchServiceTest {
         dto.setLoser2Cups(0);
 
         assertThrows(IllegalArgumentException.class,
-                () -> matchService.createMatch(dto));
+                () -> matchService.createMatch(GROUP_ID, dto));
     }
 }

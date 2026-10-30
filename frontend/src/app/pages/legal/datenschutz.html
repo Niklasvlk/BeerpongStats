@@ -1,0 +1,99 @@
+<section class="legal">
+  <h2>Datenschutzerklärung</h2>
+  <app-draft-banner />
+
+  <h3>1. Wer ist verantwortlich?</h3>
+  <p>
+    Verantwortlich für die Verarbeitung deiner Daten auf dieser Seite ist
+    <span [class.placeholder]="isPlaceholder(operator.name)">{{ operator.name }}</span>,
+    <span [class.placeholder]="isPlaceholder(operator.street)">{{ operator.street }}</span>,
+    <span [class.placeholder]="isPlaceholder(operator.city)">{{ operator.city }}</span>,
+    E-Mail:
+    <span [class.placeholder]="isPlaceholder(operator.email)">{{ operator.email }}</span>
+    (siehe auch das <a routerLink="/impressum">Impressum</a>).
+  </p>
+
+  <h3>2. Welche Daten verarbeitet die Seite und wofür?</h3>
+
+  <h4>Dein Account</h4>
+  <p>
+    Wenn du dich registrierst, speichern wir deinen <strong>Benutzernamen</strong>, dein <strong>Passwort</strong> und den
+    Zeitpunkt der Registrierung. Das Passwort wird nie im Klartext gespeichert, sondern nur als Hash (BCrypt), aus dem es
+    sich nicht zurückrechnen lässt. Wir brauchen diese Daten, damit du dich anmelden und die Seite nutzen kannst
+    (Art. 6 Abs. 1 lit. b DSGVO).
+  </p>
+
+  <h4>Gruppen, Spielernamen, Matches und Statistiken</h4>
+  <p>
+    In jeder Gruppe, der du angehörst, hast du einen <strong>Spielernamen</strong> (standardmäßig dein Benutzername, du
+    kannst einen anderen wählen), eine <strong>Rolle</strong> (Admin oder Mitglied) und eine <strong>Statistik</strong>
+    aus den eingetragenen Matches (Siege, Niederlagen, getroffene Becher). Diese Angaben sind für alle Mitglieder
+    derselben Gruppe sichtbar, aber für niemanden außerhalb der Gruppe. Wähle als Spielernamen nichts, was du den anderen
+    Mitgliedern nicht zeigen möchtest (Art. 6 Abs. 1 lit. b DSGVO).
+  </p>
+  <p>
+    <strong>Wichtig beim Verlassen und Löschen:</strong> Wenn du eine Gruppe verlässt, entfernt wirst oder deinen Account
+    löschst, bleibt dein Spieler mit Namen und Statistik in der Gruppe als „ehemalig“ stehen, damit die Matches der anderen
+    vollständig bleiben. Er ist dann keinem Account mehr zugeordnet. Wenn du auch das nicht möchtest, schreib an die oben
+    genannte E-Mail-Adresse: Dein Name wird dann gelöscht oder anonymisiert. Gruppen, in denen du das letzte Mitglied
+    warst, werden mit allen Matches vollständig gelöscht.
+  </p>
+
+  <h4>Einladungslinks</h4>
+  <p>
+    Wenn ein Admin einen Einladungslink erstellt, speichern wir nur einen Hash des Links, den Zeitpunkt, die Gültigkeit
+    und wie oft der Link benutzt wurde, nicht den Link selbst.
+  </p>
+
+  <h4>Zugriffsdaten beim Hoster</h4>
+  <p>
+    Die Seite läuft bei <span [class.placeholder]="isPlaceholder(operator.hosting)">{{ operator.hosting }}</span>,
+    <span [class.placeholder]="isPlaceholder(operator.hostingAddress)">{{ operator.hostingAddress }}</span>
+    (Serverstandort:
+    <span [class.placeholder]="isPlaceholder(operator.hostingRegion)">{{ operator.hostingRegion }}</span>). Beim Aufruf
+    verarbeitet der Hoster technisch bedingt Zugriffsdaten wie deine IP-Adresse, den Zeitpunkt und die aufgerufene
+    Adresse in Server-Protokollen. Das ist nötig, um die Seite auszuliefern und sicher zu betreiben (Art. 6 Abs. 1
+    lit. f DSGVO). Mit dem Hoster besteht ein Vertrag zur Auftragsverarbeitung.
+  </p>
+
+  <h4>Schutz vor Missbrauch</h4>
+  <p>
+    Um das Durchprobieren von Passwörtern und das massenhafte Anlegen von Accounts zu verhindern, zählt die Seite
+    Anmelde-, Registrierungs- und Beitrittsversuche pro IP-Adresse und falsche Passwörter pro Benutzernamen. Diese Zähler
+    liegen nur kurz im Arbeitsspeicher (höchstens eine Stunde) und werden nicht dauerhaft gespeichert (Art. 6 Abs. 1
+    lit. f DSGVO).
+  </p>
+
+  <h3>3. Cookies und Speicher im Browser</h3>
+  <p>Die Seite setzt nur Dinge, die für ihren Betrieb notwendig sind. Deshalb brauchst du dafür keine Einwilligung.</p>
+  <ul>
+    <li><strong>Session-Cookie</strong> (<code>JSESSIONID</code>): hält dich angemeldet, bis du dich abmeldest, die Sitzung nach längerer Inaktivität abläuft oder der Browser geschlossen wird.</li>
+    <li><strong>Sicherheits-Cookie</strong> (<code>XSRF-TOKEN</code>): schützt vor gefälschten Anfragen an die Seite.</li>
+    <li><strong>Lokaler Speicher</strong> (<code>beerpong.lastGroupId</code>): merkt sich in deinem Browser, welche Gruppe du zuletzt geöffnet hast.</li>
+  </ul>
+
+  <h3>4. Keine Weitergabe, kein Tracking</h3>
+  <p>
+    Wir setzen keine Analyse-, Werbe- oder Tracking-Dienste ein und binden keine Inhalte von fremden Servern ein. Auch die
+    Schrift wird von dieser Seite selbst ausgeliefert. Deine Daten gehen nur an den oben genannten Hoster. Mitglieder
+    deiner Gruppen sehen die Angaben aus Abschnitt 2, wie dort beschrieben.
+  </p>
+
+  <h3>5. Wie lange werden Daten gespeichert?</h3>
+  <p>
+    Account-Daten bleiben, bis du deinen Account löschst (im Profil unter „Account löschen“). Spieler, Matches und
+    Statistiken bleiben in der Gruppe, solange die Gruppe besteht, mit der Ausnahme aus Abschnitt 2. Die Protokolle des
+    Hosters werden nach dessen Vorgaben gelöscht.
+  </p>
+
+  <h3>6. Deine Rechte</h3>
+  <p>
+    Du hast das Recht auf Auskunft über deine Daten, auf Berichtigung, Löschung und Einschränkung der Verarbeitung, auf
+    Datenübertragbarkeit und auf Widerspruch gegen die Verarbeitung (Art. 15 bis 21 DSGVO). Schreib dazu an
+    <span [class.placeholder]="isPlaceholder(operator.email)">{{ operator.email }}</span>.
+    Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren, in Deutschland bei der Behörde deines
+    Bundeslandes.
+  </p>
+
+  <p class="muted">Stand: <span [class.placeholder]="isPlaceholder(operator.updated)">{{ operator.updated }}</span></p>
+</section>

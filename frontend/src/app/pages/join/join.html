@@ -1,0 +1,43 @@
+<section>
+  <h2>Einladung</h2>
+
+  @if (!validToken()) {
+    <p class="error-text">Diese Einladung ist ungültig oder abgelaufen.</p>
+  } @else if (preview.hasValue()) {
+    @let invitation = preview.value();
+    <div class="form-card">
+      <p>
+        Du wurdest zur Gruppe <strong>{{ invitation.groupName }}</strong> eingeladen
+        ({{ invitation.memberCount === 1 ? '1 Mitglied' : invitation.memberCount + ' Mitglieder' }}).
+      </p>
+
+      @if (auth.currentUser(); as user) {
+        <form [formGroup]="form" (ngSubmit)="join()">
+          <div class="form-row">
+            <input
+              type="text"
+              formControlName="displayName"
+              [placeholder]="'Dein Spielername in der Gruppe (optional, sonst ' + user.username + ')'"
+            />
+          </div>
+          <div class="form-row">
+            <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">Join Group</button>
+          </div>
+        </form>
+        @if (error(); as message) {
+          <p class="error-text">{{ message }}</p>
+        }
+      } @else {
+        <p class="muted">Um beizutreten, brauchst du einen Account.</p>
+        <div class="landing-actions">
+          <a routerLink="/register" [queryParams]="{ returnUrl: returnUrl() }" class="btn-primary">Register</a>
+          <a routerLink="/login" [queryParams]="{ returnUrl: returnUrl() }" class="btn-secondary">Login</a>
+        </div>
+      }
+    </div>
+  } @else if (preview.error()) {
+    <p class="error-text">{{ errorText() }}</p>
+  } @else {
+    <p class="muted">Die Einladung wird geprüft …</p>
+  }
+</section>

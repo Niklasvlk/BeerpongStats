@@ -1,7 +1,7 @@
 package de.niklasvoelker.beerpongstats.config;
 
-import de.niklasvoelker.beerpongstats.model.Player;
-import de.niklasvoelker.beerpongstats.repository.PlayerRepository;
+import de.niklasvoelker.beerpongstats.model.AppUser;
+import de.niklasvoelker.beerpongstats.repository.AppUserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,25 +17,25 @@ import static org.mockito.Mockito.when;
 
 class SecurityConfigTest {
 
-    private final PlayerRepository repository = mock(PlayerRepository.class);
+    private final AppUserRepository repository = mock(AppUserRepository.class);
     private final UserDetailsService service = new SecurityConfig().userDetailsService(repository);
 
     @Test
     void userDetailsCarryTheIdAndTheStoredSpelling() {
-        Player max = Player.builder().id(7L).name("Max").password("hash").build();
-        when(repository.findByNameIgnoreCase("MAX")).thenReturn(Optional.of(max));
+        AppUser max = AppUser.builder().id(7L).username("Max").password("hash").build();
+        when(repository.findByUsernameIgnoreCase("MAX")).thenReturn(Optional.of(max));
 
         UserDetails details = service.loadUserByUsername("MAX");
 
-        PlayerUserDetails player = assertInstanceOf(PlayerUserDetails.class, details);
-        assertEquals(7L, player.getId());
-        assertEquals("Max", player.getUsername());
-        assertEquals("hash", player.getPassword());
+        AppUserDetails user = assertInstanceOf(AppUserDetails.class, details);
+        assertEquals(7L, user.getId());
+        assertEquals("Max", user.getUsername());
+        assertEquals("hash", user.getPassword());
     }
 
     @Test
     void unknownNameIsRejected() {
-        when(repository.findByNameIgnoreCase("Nobody")).thenReturn(Optional.empty());
+        when(repository.findByUsernameIgnoreCase("Nobody")).thenReturn(Optional.empty());
 
         assertThrows(UsernameNotFoundException.class, () -> service.loadUserByUsername("Nobody"));
     }

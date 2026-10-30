@@ -1,15 +1,33 @@
 <header class="navbar">
-  <div class="nav-logo">🍺 BeerpongStats</div>
+  <a class="nav-logo" routerLink="/">🍺 BeerpongStats</a>
   <button class="hamburger" (click)="toggleNav()">☰</button>
   <nav class="nav-links" [class.active]="navOpen()">
-    <a routerLink="/newMatch">New Match</a>
-    <a routerLink="/newPlayer">New Player</a>
-    <a routerLink="/players">Players</a>
-    <a routerLink="/matches">Matches</a>
-    <a routerLink="/profile" class="btn-primary">{{ auth.currentUser()?.name ?? 'My Profile' }}</a>
+    @if (auth.currentUser(); as user) {
+      @if (groups.current(); as group) {
+        <select class="group-select" aria-label="Gruppe wechseln" (change)="switchGroup($event)">
+          @for (g of groups.groups(); track g.id) {
+            <option [value]="g.id" [selected]="g.id === group.id">{{ g.name }}</option>
+          }
+        </select>
+        <a [routerLink]="['/g', group.id, 'newMatch']">New Match</a>
+        <a [routerLink]="['/g', group.id, 'players']">Players</a>
+        <a [routerLink]="['/g', group.id, 'matches']">Matches</a>
+        <a [routerLink]="['/g', group.id, 'settings']">Settings</a>
+      }
+      <a routerLink="/groups">Groups</a>
+      <a routerLink="/profile" class="btn-primary">{{ user.username }}</a>
+    } @else {
+      <a routerLink="/login">Login</a>
+      <a routerLink="/register" class="btn-primary">Register</a>
+    }
   </nav>
 </header>
 
 <main class="container">
   <router-outlet />
 </main>
+
+<footer class="footer">
+  <a routerLink="/impressum">Impressum</a>
+  <a routerLink="/datenschutz">Datenschutz</a>
+</footer>

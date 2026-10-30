@@ -13,7 +13,7 @@
       <p class="error-text">Spieler nicht gefunden.</p>
     }
     <div style="margin-top: 20px;">
-      <a routerLink="/players" class="btn-primary">Back to Players</a>
+      <a [routerLink]="['/g', group(), 'players']" class="btn-primary">Back to Players</a>
     </div>
   </div>
 </section>

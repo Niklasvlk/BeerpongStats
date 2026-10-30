@@ -1,5 +1,5 @@
 import { DecimalPipe, PercentPipe } from '@angular/common';
-import { Component, inject, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { PlayerApi } from '../../api/player-api';
@@ -12,11 +12,13 @@ import { PlayerApi } from '../../api/player-api';
 export class PlayerDetails {
   private readonly api = inject(PlayerApi);
 
-  // Route-Parameter :id
+  // Route-Parameter :groupId der Eltern-Route und :id
+  readonly groupId = input.required<string>();
   readonly id = input.required<string>();
+  protected readonly group = computed(() => Number(this.groupId()));
 
   protected readonly player = rxResource({
-    params: () => Number(this.id()),
-    stream: ({ params }) => this.api.get(params),
+    params: () => ({ group: this.group(), id: Number(this.id()) }),
+    stream: ({ params }) => this.api.get(params.group, params.id),
   });
 }

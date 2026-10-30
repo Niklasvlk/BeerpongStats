@@ -1,0 +1,50 @@
+<section>
+  <h2>My Groups</h2>
+
+  <div class="card-grid">
+    @for (group of groups(); track group.id) {
+      <a class="card card-link" [routerLink]="['/g', group.id]">
+        <div class="card-title">
+          {{ group.name }}
+          @if (group.role === 'ADMIN') {
+            <span class="badge">Admin</span>
+          }
+        </div>
+        <div class="card-stat">{{ group.memberCount === 1 ? '1 Mitglied' : group.memberCount + ' Mitglieder' }}</div>
+        <div class="card-stat">
+          Deine Win Rate:
+          <span [style.color]="winRateColor(group.winRate)">{{ group.winRate | percent: '1.2-2' }}</span>
+        </div>
+      </a>
+    }
+  </div>
+  @if (groups().length === 0 && !loadFailed()) {
+    <p class="muted">Du bist noch in keiner Gruppe. Lege unten eine an oder lass dich per Einladungslink einladen.</p>
+  }
+  @if (loadFailed()) {
+    <p class="error-text">Die Gruppen konnten nicht geladen werden.</p>
+  }
+</section>
+
+<section>
+  <h2>Create a Group</h2>
+
+  <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="form-row">
+      <input type="text" formControlName="name" placeholder="Name der Gruppe" />
+    </div>
+    <div class="form-row">
+      <input
+        type="text"
+        formControlName="displayName"
+        placeholder="Dein Spielername in der Gruppe (optional, sonst dein Benutzername)"
+      />
+    </div>
+    <div class="form-row">
+      <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">Create Group</button>
+    </div>
+    @if (error(); as message) {
+      <p class="error-text">{{ message }}</p>
+    }
+  </form>
+</section>

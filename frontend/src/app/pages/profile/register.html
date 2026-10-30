@@ -1,0 +1,39 @@
+<section>
+  <h2>Register</h2>
+
+  <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="form-row">
+      <input type="text" formControlName="username" placeholder="Benutzername" autocomplete="username" />
+    </div>
+    <div class="form-row">
+      <input
+        type="password"
+        formControlName="password"
+        placeholder="Passwort (min. 8 Zeichen)"
+        autocomplete="new-password"
+      />
+    </div>
+    @if (form.controls.password.dirty && form.controls.password.hasError('minlength')) {
+      <p class="error-text">Das Passwort muss mindestens 8 Zeichen lang sein.</p>
+    }
+    @if (form.controls.password.hasError('maxlength')) {
+      <p class="error-text">Das Passwort darf höchstens 72 Zeichen lang sein.</p>
+    }
+    <div class="form-row">
+      <button type="submit" class="btn-primary" [disabled]="form.invalid || submitting()">Register</button>
+    </div>
+    @if (error(); as message) {
+      <p class="error-text">{{ message }}</p>
+    }
+  </form>
+
+  <p class="muted auth-hint">
+    Mit der Registrierung speichern wir deinen Benutzernamen und dein Passwort (nur als Hash). Mehr dazu in der
+    <a routerLink="/datenschutz">Datenschutzerklärung</a>.
+  </p>
+
+  <p class="muted auth-hint">
+    Schon einen Account?
+    <a routerLink="/login" [queryParams]="{ returnUrl: returnUrl() }">Zum Login</a>
+  </p>
+</section>

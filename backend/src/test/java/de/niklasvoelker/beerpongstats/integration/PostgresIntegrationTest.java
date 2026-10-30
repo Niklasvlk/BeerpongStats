@@ -1,0 +1,43 @@
+package de.niklasvoelker.beerpongstats.integration;
+
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * Basis für Tests gegen ein echtes Postgres, mit dem vollständigen Spring-Kontext (Flyway, Hibernate-Validierung,
+ * Security, Interceptor). Ohne Docker werden diese Tests übersprungen.
+ *
+ * <p>Der Container startet einmal pro JVM und wird von allen Testklassen geteilt. Spring cached den Kontext über
+ * Testklassen hinweg; ein Container pro Klasse würde dazu führen, dass eine spätere Klasse den Kontext mit der
+ * Adresse eines schon gestoppten Containers wiederverwendet. Beendet wird er mit der JVM (Ryuk).
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+// Die Tests melden sich hundertfach von derselben Adresse an; das Rate Limiting hat seinen eigenen Test
+@TestPropertySource(properties = "beerpong.rate-limit.enabled=false")
+@ExtendWith(DockerAvailableCondition.class)
+abstract class PostgresIntegrationTest {
+
+    private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:15");
+
+    private static synchronized PostgreSQLContainer postgres() {
+        if (!POSTGRES.isRunning()) {
+            POSTGRES.start();
+        }
+        return POSTGRES;
+    }
+
+    // Läuft nur, wenn der Kontext gebaut wird, also nur wenn Docker da ist
+    @DynamicPropertySource
+    static void datasource(DynamicPropertyRegistry registry) {
+        PostgreSQLContainer postgres = postgres();
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
+}

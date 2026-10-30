@@ -1,31 +1,41 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthApi } from '../../api/auth-api';
 import { errorMessage } from '../../shared/error-message';
+import { safeReturnUrl } from '../../shared/return-url';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './login.html',
 })
 export class Login {
   private readonly auth = inject(AuthApi);
   private readonly router = inject(Router);
 
+  // Kommt aus dem Query-Parameter ?returnUrl, den der authGuard setzt
+  readonly returnUrl = input<string>();
+
   protected readonly form = inject(FormBuilder).nonNullable.group({
-    name: ['', Validators.required],
+    username: ['', Validators.required],
     password: ['', Validators.required],
   });
   protected readonly error = signal<string | null>(null);
+  protected readonly submitting = signal(false);
 
   protected submit(): void {
-    if (this.form.invalid) return;
-    const { name, password } = this.form.getRawValue();
+    if (this.form.invalid || this.submitting()) return;
+    this.submitting.set(true);
+    this.error.set(null);
+    const { username, password } = this.form.getRawValue();
 
-    this.auth.login(name, password).subscribe({
-      next: () => this.router.navigateByUrl('/profile'),
-      error: (err) => this.error.set(errorMessage(err)),
+    this.auth.login(username.trim(), password).subscribe({
+      next: () => this.router.navigateByUrl(safeReturnUrl(this.returnUrl()) ?? '/'),
+      error: (err) => {
+        this.error.set(errorMessage(err));
+        this.submitting.set(false);
+      },
     });
   }
 }
